@@ -163,16 +163,14 @@ export const useRecipientStore = create((set,get)=>({
             const publicKey = `2ch3fjaTj2-SImD0t`
             const donor = await axiosInstance.get(`/donate/${donorId}`); 
             const recipient = await axiosInstance.get(`/recipient/${authUser.recipientId}`);
-            
-            console.log(donor)
-            console.log(recipient)
-            const redirectPage = `https://blood-donation-o7z9.onrender.com/allrequests/${recipient.data.recipientDetail._id}`
+             
+            const redirectPage = `https://gcesbloodline.onrender.com/allrequests/${recipient.data.recipientDetail._id}`
             
             emailjs.send(
                 "service_zi6mag1",        
                 "template_uxd4tem",       
                 {
-                    donor: donor.data.donorDetail.name,
+                    donor: donor.data.donorDetail.username,
                     recipient: recipient.data.recipientDetail.AttendeesName,
                     email: recipient.data.recipientDetail.email,
                     message: recipient.data.recipientDetail.note,
