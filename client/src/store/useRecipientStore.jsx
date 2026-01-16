@@ -172,7 +172,7 @@ export const useRecipientStore = create((set,get)=>({
                 {
                     donor: donor.data.donorDetail.username,
                     recipient: recipient.data.recipientDetail.AttendeesName,
-                    email: recipient.data.recipientDetail.email,
+                    email: donor.data.donorDetail.email,
                     message: recipient.data.recipientDetail.note,
                     link: redirectPage,
                 },
