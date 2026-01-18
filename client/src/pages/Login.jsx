@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Link } from "react-router"
+import { Link, useNavigate } from "react-router"
 import toast from "react-hot-toast"
 import { useAuthStore } from "../store/useAuthStore.jsx"
 import loginImg from './../assets/loginbg2.gif'
@@ -7,6 +7,7 @@ import { Eye, EyeOff } from "lucide-react"
 
 const Login = () => {
     
+    const navigate = useNavigate();
     const {login} = useAuthStore()
     const [formData,setFormDate] = useState({
         email:"",
@@ -69,6 +70,9 @@ const Login = () => {
                     <Eye className="size-4"/> : <EyeOff className="size-4"/>
                 }
                 </div>
+            </div>
+            <div onClick={()=>navigate('/forget-password')} >
+                <p className="text-center text-violet-900 cursor-pointer underline" >Forget Password ?</p>
             </div>
             <div className="sm:w-[30vw] w-[80%] text-center">
 

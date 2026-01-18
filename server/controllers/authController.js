@@ -1,5 +1,7 @@
+import bcrypt from 'bcryptjs'
 import cloudinary from '../config/cloudinary.js'
 import { getUserSocket, io } from '../config/socket.js'
+import OTPPasswordReset from '../model/OTPforPasswordReset.js'
 import User from './../model/User.js' 
 
 
@@ -93,4 +95,56 @@ export const checkAuth = async(req, res)=>{
     const userSocket = getUserSocket(req.user._id)
     io.to(userSocket).emit("checkAuth", req.user)
     res.status(200).json(req.user)
+}
+
+export const sendOTPForPasswordReset = async(req, res)=>{
+    const {email} = req.body
+    if(!email) return res.status(400).json({message:"please provide email"})
+    const user = await User.findOne({email})
+    if(!user) return res.status(404).json({message:"user not found with that email"})
+    const generatedOTP = `${Math.floor(100000 + Math.random()*900000)}` 
+    try{ 
+        const salt = await bcrypt.genSalt(10)
+        const hashedOtp = await bcrypt.hash(generatedOTP, salt) 
+        const OTP = await OTPPasswordReset.create({
+            userId:user._id,
+            otp:hashedOtp,
+            createdAt:Date.now(),
+            expiresAt:Date.now()+300000
+        }) 
+        res.status(200).json({
+            otp: generatedOTP,
+            email
+        })
+    }catch(err){
+        console.log(err)
+        res.status(500).json({ 
+            message:"Please try again later",
+            error:err
+        })  
+    }
+}
+
+export const verifyOTPForPasswordReset = async(req, res)=>{
+    const {email, otp} = req.body
+    if(!email || !otp) return res.status(400).json({message:"please provide required fields"})
+    const user = await User.findOne({email})
+    if(!user) return res.status(404).json({message:"user not found with that email"})
+    const validOTP = await OTPPasswordReset.findOne({userId:user._id}).sort({createdAt:-1}) 
+    if(!validOTP) return res.status(400).json({message:"please request for OTP again"}) 
+    if(validOTP.expiresAt < Date.now()) return res.status(400).json({message:"OTP expired, please request for new OTP"})
+    const isOtpMatch = await bcrypt.compare(otp, validOTP.otp)
+    if(!isOtpMatch) return res.status(400).json({message:"invalid OTP, please try again"})
+    OTPPasswordReset.deleteMany({userId:user._id})
+    res.status(200).json({message:"OTP verified successfully"})
+}
+
+export const resetPasswordController = async(req, res)=>{
+    const {email, password} = req.body
+    if(!email || !password) return res.status(400).json({message:"please provide required fields"})
+    const user = await User.findOne({email})
+    if(!user) return res.status(404).json({message:"user not found with that email"}) 
+    user.password = password
+    await user.save()
+    res.status(200).json({message:"password reset successfully"}) 
 }

@@ -2,6 +2,8 @@ import {create} from 'zustand'
 import { axiosInstance } from '../lib/axios.jsx'
 import toast from 'react-hot-toast' 
 import { io } from 'socket.io-client'
+import emailjs from '@emailjs/browser' 
+import { Navigate } from 'react-router'
 
 const BASE_URL = import.meta.env.MODE === "development" ? "http://localhost:5000" : "/"  
 export const useAuthStore = create((set,get)=>({
@@ -16,7 +18,11 @@ export const useAuthStore = create((set,get)=>({
     isUserAsRecipient: false,
     isUserAsDonor: false,
     socket:null,
-
+    otpSent:false,
+    otpVerified:false,
+    isOtpsending:false,
+    isOtpVerifing:false,
+    
     checkAuth:async()=>{ 
         try{
             const check = async()=>{
@@ -38,8 +44,7 @@ export const useAuthStore = create((set,get)=>({
                 set({authUser:user,isUserAsDonor: isDonor, isUserAsRecipient:isRecipient})
             }) 
             get().getConnected()
-        }catch(err){
-            console.log(err.response.data.message) 
+        }catch(err){ 
             set({authUser:null})
         }finally{
             set({isCheckAuth:false})
@@ -99,12 +104,7 @@ export const useAuthStore = create((set,get)=>({
                 }
             })
             toast.success("profile Updated") 
-            // socket.on("completedRequest",async(requestDetail)=>{
-            //     console.log("request Detail: "+requestDetail)
-            //     await axiosInstance.put('/auth/update-profile', data)
-            // })
-        }catch(err){
-            console.log(err)
+        }catch(err){ 
             toast.error(err.response.data.message)
         }finally{
             set({isProfileUpdating:false})
@@ -114,18 +114,9 @@ export const useAuthStore = create((set,get)=>({
         set({isGetUser:true})
         try{
             const res = await axiosInstance.get('/auth/')  
-            set({authUser:res.data}) 
-            // const socket = useAuthStore.getState().socket
-            // socket.off("newrecipient")
-            // socket.off("getProfile")
-            // socket.on("getProfile",(profile)=>{
-            //     set({authUser:profile})
-            // })
-            // socket.on("newrecipient",async()=>{
-            //     await axiosInstance.get('/auth/')
-            // })
+            set({authUser:res.data})  
         }catch(err){
-            console.log(err)
+            set({authUser:null})
         }finally{
             set({isGetUser:false})
         }
@@ -150,5 +141,58 @@ export const useAuthStore = create((set,get)=>({
         if(get().socket?.connected){
             get().socket.disconnect()
         } 
+    },
+    sendOTPForPasswordReset:async(email)=>{
+        set({otpSent:false})
+        set({isOtpsending:true})
+        try{
+            const res = await axiosInstance.post('/auth/forget-password/send-otp',{email});
+            const publicKey = `0rGRpnE7N0ygcnPTj`
+            emailjs.send(
+                "service_ra38cer",        
+                "template_yrnw2dn",       
+                {
+                    OTP_CODE: res.data.otp, 
+                    email: res.data.email
+                },
+                publicKey      
+                )
+                .then(async() => {  
+                    set({otpSent:true})
+                    toast.success("OTP sent to the Email !") 
+                })
+                .catch((err) => {
+                    set({otpSent:false})  
+                    toast.error("something went wrong !") 
+            });  
+            toast.success("OTP sent to your email")
+        }catch(err){ 
+            set({otpSent:false})
+            toast.error(err.response.data.message)
+        }finally{
+            set({isOtpsending:false})
+        }
+    },
+    verifyOTPForPasswordReset:async(email, otp)=>{
+        set({otpVerified:false})
+        set({isOtpVerifing:true})
+        try{
+            await axiosInstance.post('/auth/forget-password/verify-otp',{email, otp});
+            set({otpVerified:true})
+            toast.success("OTP verified successfully")
+        }catch(err){
+            set({otpVerified:false}) 
+            toast.error(err.response.data.message)
+        }finally{
+            set({isOtpVerifing:false})
+        }
+    },
+    resetPassword:async(email, password)=>{
+        try{
+            const res = await axiosInstance.post('/auth/forget-password/reset-password',{email, password}); 
+            toast.success("password reset successfully")
+        }catch(err){ 
+            toast.error(err.response.data.message)
+        }
     }
 }))
