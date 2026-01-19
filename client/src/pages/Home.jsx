@@ -206,8 +206,18 @@ const Home = () => {
                                         Learn More
                                     </button>  
                                 </Link> 
+                            </div> 
+                            <div className="relative "> 
+                                <div class="absolute -bottom-20 left-[50%] translate-x-[-50%] text-center text-md text-gray-400">
+                                    Developed by
+                                    <a href="https://saravanawebdev.web.app"
+                                        target="_blank"
+                                        class="text-yellow-400 ml-2 font-semibold hover:underline">
+                                        III-Year CSE
+                                    </a>
+                                </div>
                             </div>
-                        </div>
+                        </div> 
                     )
                 }
             </div>

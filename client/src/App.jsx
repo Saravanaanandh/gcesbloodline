@@ -19,6 +19,7 @@ import OtpPage from './pages/OtpPage.jsx'
 import Dashboard from './pages/Dashboard.jsx'
 import RequestForMe from './pages/RequestForMe.jsx' 
 import ForgetPassword from './pages/ForgetPassword'
+import ContactAndSupport from './pages/ContactAndSupport'
 
 function App() { 
   const {authUser, checkAuth,isCheckAuth} = useAuthStore()
@@ -37,6 +38,7 @@ function App() {
         <Route path='/learnmore' element={<LearnMore/>}/>
         <Route path='/dashboard' element={<Dashboard/>}/>
         <Route path='/forget-password' element={<ForgetPassword/>}/>
+        <Route path='/contact' element={<ContactAndSupport/>}/>
         <Route path='/login' element={!authUser ? <Login/> : <Navigate to={'/'}/>}/>
         <Route path='/signup' element={!authUser ? <Signup/> : <Navigate to={'/'}/>}/> 
         <Route path='/profile' element={authUser ? <UpdateProfile/>:<Navigate to={'/'}/>}/> 

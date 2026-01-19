@@ -1,6 +1,7 @@
 import { useAuthStore } from "@/store/useAuthStore";
 import { useRecipientStore } from "@/store/useRecipientStore";
 import {
+  ArrowLeft,
   ArrowRightIcon,
   Eye,
   EyeOff,
@@ -78,9 +79,9 @@ const ForgetPassword = () => {
   }; 
   return (
     <div className="w-full h-[100vh] bg-black text-white flex flex-col justify-center items-center">
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} className="border p-5 rounded-lg w-md shadow-md shadow-gray-500 flex flex-col">
         {step === 1 && (
-          <div className="flex flex-col gap-3 mb-5 ">
+          <div className="flex flex-col gap-3 mb-5 w-full">
             <label>Email</label>
             <input
               className="p-2 rounded-md text-white outline-none border-2 border-gray-400"
@@ -133,36 +134,43 @@ const ForgetPassword = () => {
           </div>
         )}
 
-        <button
-  type="submit"
-  className="flex gap-3 items-center px-2 py-1 rounded-md bg-purple-800 text-white"
->
-  {step === 1 ? (
-    isOtpsending ? (
-      <div className="flex items-center gap-2">
-        <span>Sending...</span>
-        <Loader2Icon className="animate-spin"/>
-      </div>
-    ) : (
-      "Next"
-    )
-  ) : step === 2 ? (
-    isOtpVerifing ? (
-      <div className="flex items-center gap-2">
-        <span>Verifying...</span>
-        <Loader2Icon className="animate-spin"/>
-      </div>
-    ) : (
-      "Verify OTP"
-    )
-  ) : (
-    "Reset Password"
-  )}
+        <div className="flex justify-between items-center">
+          <button type="button" onClick={(e)=> { e.preventDefault();navigate('/')}}
+            className="flex gap-3 items-center px-2 py-1 rounded-md bg-purple-800 text-white cursor-pointer"
+            >
+            <ArrowLeft/> Back
+          </button>
+          <button
+            type="submit"
+            className="flex gap-3 items-center px-2 py-1 rounded-md bg-purple-800 text-white cursor-pointer"
+          >
+            {step === 1 ? (
+              isOtpsending ? (
+                <div className="flex items-center gap-2">
+                  <span>Sending...</span>
+                  <Loader2Icon className="animate-spin"/>
+                </div>
+              ) : (
+                "Next"
+              )
+            ) : step === 2 ? (
+              isOtpVerifing ? (
+                <div className="flex items-center gap-2">
+                  <span>Verifying...</span>
+                  <Loader2Icon className="animate-spin"/>
+                </div>
+              ) : (
+                "Verify OTP"
+              )
+            ) : (
+              "Reset Password"
+            )}
 
-  {step === 1 && !isOtpsending && (
-    <ArrowRightIcon />
-  )}
-</button>
+            {step === 1 && !isOtpsending && (
+              <ArrowRightIcon />
+            )}
+          </button>
+        </div>
 
       </form>
     </div>

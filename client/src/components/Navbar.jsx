@@ -1,6 +1,6 @@
 import { useAuthStore } from "../store/useAuthStore.jsx"
 import { Link, useParams} from "react-router"
-import {ArrowBigRightDashIcon, CircleAlert, Home, LogOut, Mail, MoonStar, SunIcon, User} from 'lucide-react'
+import {ArrowBigRightDashIcon, CircleAlert, Contact, Contact2, ContactIcon, Headset, Home, LogOut, Mail, MoonStar, SunIcon, User} from 'lucide-react'
 import logo from './../assets/logo.png'
 import {motion} from 'framer-motion' 
 import { useTheme } from "next-themes"
@@ -40,6 +40,11 @@ const Navbar = () => {
             <Link to={`${location.pathname === '/' ? '/learnmore':"/"}`}>
                 <button title={`${location.pathname === '/' ? 'learnmore':"Home"}`} className="flex items-center cursor-pointer text-nowrap rounded-full px-1 py-1 text-black dark:text-white transition-all duration-300 hover:scale-105 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black" > 
                     {location.pathname === '/' ?  (<CircleAlert className="size-6"/>) :( <Home className="size-5"/>)} 
+                </button>  
+            </Link> 
+            <Link to='/contact'>
+                <button title="contact" className="flex items-center cursor-pointer text-nowrap rounded-full px-1 py-1 text-black dark:text-white transition-all duration-300 hover:scale-105 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black" > 
+                    <Headset className="size-6"/>
                 </button>  
             </Link> 
             {
