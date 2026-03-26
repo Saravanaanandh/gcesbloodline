@@ -20,6 +20,9 @@ import Dashboard from './pages/Dashboard.jsx'
 import RequestForMe from './pages/RequestForMe.jsx' 
 import ForgetPassword from './pages/ForgetPassword'
 import ContactAndSupport from './pages/ContactAndSupport'
+import PrivacyPolicy from './pages/PrivacyPolicy.jsx'
+import AccountDeletion from './pages/AccountDeletion.jsx'
+import DataDeletion from './pages/DataDeletion.jsx'
 
 function App() { 
   const {authUser, checkAuth,isCheckAuth} = useAuthStore()
@@ -39,6 +42,9 @@ function App() {
         <Route path='/dashboard' element={<Dashboard/>}/>
         <Route path='/forget-password' element={<ForgetPassword/>}/>
         <Route path='/contact' element={<ContactAndSupport/>}/>
+        <Route path='/privacy-policy' element={<PrivacyPolicy/>}/>
+        <Route path='/account-deletion' element={<AccountDeletion/>}/>
+        <Route path='/data-deletion' element={<DataDeletion/>}/>
         <Route path='/login' element={!authUser ? <Login/> : <Navigate to={'/'}/>}/>
         <Route path='/signup' element={!authUser ? <Signup/> : <Navigate to={'/'}/>}/> 
         <Route path='/profile' element={authUser ? <UpdateProfile/>:<Navigate to={'/'}/>}/> 

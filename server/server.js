@@ -10,6 +10,7 @@ import recipientRouter from './routes/recipient.route.js'
 import { verifyJWT } from './middleware/auth.middleware.js'
 import cors from 'cors'
 import path from 'path'
+import { fileURLToPath } from 'url';
 import {app, server} from './config/socket.js'
 import rateLimit from 'express-rate-limit' 
 
@@ -34,7 +35,8 @@ const apiLimiter = rateLimit({
     legacyHeaders:true
 })
 
-const __dirname = path.resolve() 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename); 
 app.use('/api/v1/auth',apiLimiter,authRouter)
 app.use('/api/v1/request',apiLimiter,verifyJWT,bloodReqRouter)
 app.use('/api/v1/recipient',apiLimiter,verifyJWT,recipientRouter)
@@ -43,7 +45,7 @@ app.use('/api/v1/otp',apiLimiter,verifyJWT, otpRouter)
 
 
 if(process.env.NODE_ENV==="production"){
-    app.use(express.static(path.join(__dirname,'./../client/dist')))
+    app.use(express.static(path.join(__dirname,'../client/dist')))
 
     app.get('*',(req,res)=>{
         res.sendFile(path.join(__dirname,"../client","dist","index.html"))

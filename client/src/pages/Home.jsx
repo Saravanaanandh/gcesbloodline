@@ -208,13 +208,20 @@ const Home = () => {
                                 </Link> 
                             </div> 
                             <div className="relative "> 
-                                <div class="absolute -bottom-20 left-[50%] translate-x-[-50%] text-center text-md text-gray-400">
-                                    Developed by
-                                    <a href="https://saravanawebdev.web.app"
-                                        target="_blank"
-                                        class="text-yellow-400 ml-2 font-semibold hover:underline">
-                                        III-Year CSE
-                                    </a>
+                                <div className="absolute -bottom-20 left-[50%] translate-x-[-50%] text-center text-md text-gray-400 flex flex-col items-center gap-2">
+                                    <div>
+                                        Developed by
+                                        <a href="https://saravanawebdev.web.app"
+                                            target="_blank"
+                                            className="text-yellow-400 ml-2 font-semibold hover:underline">
+                                            III-Year CSE
+                                        </a>
+                                    </div>
+                                    <div className="flex gap-4 mb-4 sm:mb-0">
+                                        <Link to='/privacy-policy' className="hover:underline text-sm text-gray-500">Privacy Policy</Link>
+                                        <Link to='/account-deletion' className="hover:underline text-sm text-gray-500">Account Deletion</Link>
+                                        <Link to='/data-deletion' className="hover:underline text-sm text-gray-500">Data Deletion</Link>
+                                    </div>
                                 </div>
                             </div>
                         </div> 
