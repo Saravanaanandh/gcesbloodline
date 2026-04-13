@@ -69,7 +69,7 @@ const AllDonors = () => {
         <div className="flex flex-col sm:h-[75vh] sm:w-[15vw] w-full">
           <div className="flex sm:flex-col">
             <div
-              className="text-[1rem] sm:text-[1.2rem] cursor-pointer w-full m-3 flex h-[8vh] sm:h-[18vh] items-center justify-center rounded-lg shadow-sm shadow-gray-400"
+              className={`text-[1rem] sm:text-[1.2rem] cursor-pointer w-full m-3 flex h-[8vh] sm:h-[18vh] items-center justify-center rounded-lg shadow-sm shadow-gray-400 transition-all duration-300 ${isAvailable ? "bg-red-600 text-white" : "hover:bg-gray-100 dark:hover:bg-gray-800"}`}
               onClick={() => {
                 setIsAvailable(true);
                 setIsAccepted(false);
@@ -80,7 +80,7 @@ const AllDonors = () => {
               <span>Available</span>
             </div>
             <div
-              className=" text-[1rem] sm:text-[1.2rem] cursor-pointer w-full m-3 flex h-[8vh] sm:h-[18vh] items-center justify-center rounded-lg shadow-sm shadow-gray-400"
+              className={`text-[1rem] sm:text-[1.2rem] cursor-pointer w-full m-3 flex h-[8vh] sm:h-[18vh] items-center justify-center rounded-lg shadow-sm shadow-gray-400 transition-all duration-300 ${isPending ? "bg-red-600 text-white" : "hover:bg-gray-100 dark:hover:bg-gray-800"}`}
               onClick={() => {
                 setIsAvailable(false);
                 setIsAccepted(false);
@@ -93,7 +93,7 @@ const AllDonors = () => {
           </div>
           <div className="flex sm:flex-col">
             <div
-              className="text-[1rem] sm:text-[1.2rem] cursor-pointer w-full m-3 flex h-[8vh] sm:h-[18vh] items-center justify-center rounded-lg shadow-sm shadow-gray-400"
+              className={`text-[1rem] sm:text-[1.2rem] cursor-pointer w-full m-3 flex h-[8vh] sm:h-[18vh] items-center justify-center rounded-lg shadow-sm shadow-gray-400 transition-all duration-300 ${isAccepted ? "bg-red-600 text-white" : "hover:bg-gray-100 dark:hover:bg-gray-800"}`}
               onClick={() => {
                 setIsAvailable(false);
                 setIsAccepted(true);
@@ -104,7 +104,7 @@ const AllDonors = () => {
               <span className="">Accepted</span>
             </div>
             <div
-              className="text-[1rem] sm:text-[1.2rem] cursor-pointer w-full m-3 flex h-[8vh] sm:h-[18vh] items-center justify-center rounded-lg shadow-sm shadow-gray-400"
+              className={`text-[1rem] sm:text-[1.2rem] cursor-pointer w-full m-3 flex h-[8vh] sm:h-[18vh] items-center justify-center rounded-lg shadow-sm shadow-gray-400 transition-all duration-300 ${isCompleted ? "bg-red-600 text-white" : "hover:bg-gray-100 dark:hover:bg-gray-800"}`}
               onClick={() => {
                 setIsAvailable(false);
                 setIsAccepted(false);

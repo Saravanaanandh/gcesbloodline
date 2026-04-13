@@ -53,196 +53,230 @@ const Signup = () => {
     };
 
     return ( 
-        <div className="pb-10 flex flex-col items-center w-full min-h-[100vh] bg-no-repeat bg-fixed bg-cover bg-center" style={{backgroundImage:`url(${signupImg})`}}> 
-        <form onSubmit={handleSubmit} className="flex items-center justify-center my-10 max-sm:my-4">
-            
-            <div className="flex flex-col gap-1 min-h-auto w-[85vw] px-10 sm:w-[40vw] bg-amber-50 py-10 rounded-2xl max-sm:py-5 dark:text-black">
-                <h1 className="sm:text-[2rem] text-center"><strong>Create Account</strong></h1>
+        <div className="flex flex-col items-center justify-center w-full min-h-screen bg-no-repeat bg-fixed bg-cover bg-center py-12 px-4 sm:px-6 lg:px-8" style={{backgroundImage:`url(${signupImg})`}}> 
+            <div className="w-full max-w-4xl bg-white/95 dark:bg-gray-950/90 backdrop-blur-xl rounded-[2rem] shadow-2xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+                <div className="px-6 py-10 sm:p-14">
+                    <div className="text-center mb-10">
+                        <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight mb-3">Create Account</h1>
+                        <p className="text-gray-600 dark:text-gray-400 text-lg">Join the GCES Blood Line community today.</p>
+                    </div>
 
-                <label className="text-start w-full">Full Name</label>
-                <input 
-                    className=" bg-gray-300 sm:w-[30vw] w-[100%] outline-none border-none p-2 rounded-md"
-                    type="text" 
-                    placeholder="Enter fullname"
-                    value={formData.username}
-                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                    autoComplete="on"
-                    required
-                />
+                    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                            
+                            <div className="flex flex-col">
+                                <label className="block mb-2 text-sm font-semibold text-gray-700 dark:text-gray-300">Full Name</label>
+                                <input 
+                                    className="w-full p-3.5 bg-gray-50/50 dark:bg-gray-900/50 border border-gray-300 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all text-gray-900 dark:text-gray-100 shadow-sm"
+                                    type="text" 
+                                    placeholder="Enter full name"
+                                    value={formData.username}
+                                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                                    autoComplete="on"
+                                    required
+                                />
+                            </div>
 
-                <label>Age</label>
-                <input 
-                    className="bg-gray-300 sm:w-[30vw] w-[100%] outline-none border-none p-2 rounded-md"
-                    type="tel" 
-                    placeholder="Enter Age"
-                    value={formData.age || ''}
-                    onChange={(e) => setFormData({ ...formData, age: parseInt(e.target.value) })}
-                    autoComplete="on"
-                    required
-                />
+                            <div className="flex flex-col">
+                                <label className="block mb-2 text-sm font-semibold text-gray-700 dark:text-gray-300">Email Address</label>
+                                <input 
+                                    className="w-full p-3.5 bg-gray-50/50 dark:bg-gray-900/50 border border-gray-300 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all text-gray-900 dark:text-gray-100 shadow-sm"
+                                    type="email" 
+                                    placeholder="Enter email address"
+                                    value={formData.email}
+                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                    autoComplete="on"
+                                    required
+                                />
+                            </div>
 
-                <label>Blood Group</label>
-                <select
-                    onChange={(e) => setFormData({ ...formData, bloodType: e.target.value })} 
-                    className="bg-gray-300 sm:w-[30vw] w-[100%] outline-none border-none p-2 rounded-md"
-                    autoComplete="on" 
-                    required
-                >
-                    <option value="">Select Blood Type</option>
-                    <option value="A+">A+</option>
-                    <option value="A-">A-</option>
-                    <option value="B+">B+</option>
-                    <option value="B-">B-</option>
-                    <option value="O+">O+</option>
-                    <option value="O-">O-</option>
-                    <option value="AB+">AB+</option>
-                    <option value="AB-">AB-</option>
-                    <option value="A1+">A1+</option>
-                    <option value="A1-">A1-</option>
-                    <option value="A2+">A2+</option>
-                    <option value="A2-">A2-</option>
-                    <option value="A1B+">A1B+</option>
-                    <option value="A1B-">A1B-</option>
-                    <option value="A2B+">A2B+</option>
-                    <option value="A2B-">A2B-</option>
-                    <option value="Bombay Blood Group">Bombay Blood Group</option>
-                </select>
+                            <div className="flex flex-col">
+                                <label className="block mb-2 text-sm font-semibold text-gray-700 dark:text-gray-300">Age</label>
+                                <input 
+                                    className="w-full p-3.5 bg-gray-50/50 dark:bg-gray-900/50 border border-gray-300 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all text-gray-900 dark:text-gray-100 shadow-sm"
+                                    type="number" 
+                                    placeholder="Enter age"
+                                    value={formData.age || ''}
+                                    onChange={(e) => setFormData({ ...formData, age: parseInt(e.target.value) })}
+                                    autoComplete="on"
+                                    required
+                                    min="1"
+                                    max="100"
+                                />
+                            </div>
 
+                            <div className="flex flex-col">
+                                <label className="block mb-2 text-sm font-semibold text-gray-700 dark:text-gray-300">Gender</label>
+                                <select
+                                    className="w-full p-3.5 bg-gray-50/50 dark:bg-gray-900/50 border border-gray-300 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all text-gray-900 dark:text-gray-100 shadow-sm appearance-none"
+                                    autoComplete="on"
+                                    onChange={(e) => setFormData({ ...formData, gender: e.target.value })}  
+                                    required
+                                    value={formData.gender}
+                                >
+                                    <option value="">Select Gender</option>
+                                    <option value="MALE">Male</option>
+                                    <option value="FEMALE">Female</option> 
+                                </select>
+                            </div>
 
-                <label>Gender</label>
-                <select
-                    className="bg-gray-300 sm:w-[30vw] w-[100%] outline-none border-none p-2 rounded-md"
-                    autoComplete="on"
-                    onChange={(e) => setFormData({ ...formData, gender: e.target.value })}  
-                    required
-                >
-                    <option value="">Select Gender</option>
-                    <option value="MALE">Male</option>
-                    <option value="FEMALE">Female</option> 
-                </select>
+                            <div className="flex flex-col">
+                                <label className="block mb-2 text-sm font-semibold text-gray-700 dark:text-gray-300">Blood Group</label>
+                                <select
+                                    onChange={(e) => setFormData({ ...formData, bloodType: e.target.value })} 
+                                    value={formData.bloodType}
+                                    className="w-full p-3.5 bg-gray-50/50 dark:bg-gray-900/50 border border-gray-300 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all text-gray-900 dark:text-gray-100 shadow-sm appearance-none"
+                                    autoComplete="on" 
+                                    required
+                                >
+                                    <option value="">Select Blood Type</option>
+                                    <option value="A+">A+</option>
+                                    <option value="A-">A-</option>
+                                    <option value="B+">B+</option>
+                                    <option value="B-">B-</option>
+                                    <option value="O+">O+</option>
+                                    <option value="O-">O-</option>
+                                    <option value="AB+">AB+</option>
+                                    <option value="AB-">AB-</option>
+                                    <option value="A1+">A1+</option>
+                                    <option value="A1-">A1-</option>
+                                    <option value="A2+">A2+</option>
+                                    <option value="A2-">A2-</option>
+                                    <option value="A1B+">A1B+</option>
+                                    <option value="A1B-">A1B-</option>
+                                    <option value="A2B+">A2B+</option>
+                                    <option value="A2B-">A2B-</option>
+                                    <option value="Bombay Blood Group">Bombay Blood Group</option>
+                                </select>
+                            </div>
 
-                <label>Location</label>
-                <select
-                    className=" bg-gray-300 sm:w-[30vw] w-[100%] outline-none border-none p-2 rounded-md"
-                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                    autoComplete="on"
-                    required
-                >
-                    <option value="">Select District</option>
-                    <option value="Ariyalur">Ariyalur</option>
-                    <option value="Chengalpattu">Chengalpattu</option>
-                    <option value="Chennai">Chennai</option>
-                    <option value="Coimbatore">Coimbatore</option>
-                    <option value="Cuddalore">Cuddalore</option>
-                    <option value="Dharmapuri">Dharmapuri</option>
-                    <option value="Dindigul">Dindigul</option>
-                    <option value="Erode">Erode</option>
-                    <option value="Kallakurichi">Kallakurichi</option>
-                    <option value="Kanchipuram">Kanchipuram</option>
-                    <option value="Kanyakumari">Kanyakumari</option>
-                    <option value="Karur">Karur</option>
-                    <option value="Krishnagiri">Krishnagiri</option>
-                    <option value="Madurai">Madurai</option>
-                    <option value="Mayiladuthurai">Mayiladuthurai</option>
-                    <option value="Nagapattinam">Nagapattinam</option>
-                    <option value="Namakkal">Namakkal</option>
-                    <option value="Nilgiris">Nilgiris</option>
-                    <option value="Perambalur">Perambalur</option>
-                    <option value="Pudukkottai">Pudukkottai</option>
-                    <option value="Ramanathapuram">Ramanathapuram</option>
-                    <option value="Ranipet">Ranipet</option>
-                    <option value="Salem">Salem</option>
-                    <option value="Sivaganga">Sivaganga</option>
-                    <option value="Tenkasi">Tenkasi</option>
-                    <option value="Thanjavur">Thanjavur</option>
-                    <option value="Theni">Theni</option>
-                    <option value="Thoothukudi">Thoothukudi</option>
-                    <option value="Tiruchirappalli">Tiruchirappalli</option>
-                    <option value="Tirunelveli">Tirunelveli</option>
-                    <option value="Tirupathur">Tirupathur</option>
-                    <option value="Tiruppur">Tiruppur</option>
-                    <option value="Tiruvallur">Tiruvallur</option>
-                    <option value="Tiruvannamalai">Tiruvannamalai</option>
-                    <option value="Tiruvarur">Tiruvarur</option>
-                    <option value="Vellore">Vellore</option>
-                    <option value="Viluppuram">Viluppuram</option>
-                    <option value="Virudhunagar">Virudhunagar</option>
-                </select>
+                            <div className="flex flex-col">
+                                <label className="block mb-2 text-sm font-semibold text-gray-700 dark:text-gray-300">Mobile Number</label>
+                                <input 
+                                    className="w-full p-3.5 bg-gray-50/50 dark:bg-gray-900/50 border border-gray-300 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all text-gray-900 dark:text-gray-100 shadow-sm"
+                                    type="tel" 
+                                    placeholder="10-digit mobile number"
+                                    value={formData.mobile || ""} 
+                                    onChange={(e) => setFormData({ ...formData, mobile: parseInt(e.target.value) })}
+                                    autoComplete="on" 
+                                    required
+                                />
+                            </div>
 
+                            <div className="flex flex-col">
+                                <label className="block mb-2 text-sm font-semibold text-gray-700 dark:text-gray-300">Location (District)</label>
+                                <select
+                                    className="w-full p-3.5 bg-gray-50/50 dark:bg-gray-900/50 border border-gray-300 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all text-gray-900 dark:text-gray-100 shadow-sm appearance-none"
+                                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                                    value={formData.location}
+                                    autoComplete="on"
+                                    required
+                                >
+                                    <option value="">Select District</option>
+                                    <option value="Ariyalur">Ariyalur</option>
+                                    <option value="Chengalpattu">Chengalpattu</option>
+                                    <option value="Chennai">Chennai</option>
+                                    <option value="Coimbatore">Coimbatore</option>
+                                    <option value="Cuddalore">Cuddalore</option>
+                                    <option value="Dharmapuri">Dharmapuri</option>
+                                    <option value="Dindigul">Dindigul</option>
+                                    <option value="Erode">Erode</option>
+                                    <option value="Kallakurichi">Kallakurichi</option>
+                                    <option value="Kanchipuram">Kanchipuram</option>
+                                    <option value="Kanyakumari">Kanyakumari</option>
+                                    <option value="Karur">Karur</option>
+                                    <option value="Krishnagiri">Krishnagiri</option>
+                                    <option value="Madurai">Madurai</option>
+                                    <option value="Mayiladuthurai">Mayiladuthurai</option>
+                                    <option value="Nagapattinam">Nagapattinam</option>
+                                    <option value="Namakkal">Namakkal</option>
+                                    <option value="Nilgiris">Nilgiris</option>
+                                    <option value="Perambalur">Perambalur</option>
+                                    <option value="Pudukkottai">Pudukkottai</option>
+                                    <option value="Ramanathapuram">Ramanathapuram</option>
+                                    <option value="Ranipet">Ranipet</option>
+                                    <option value="Salem">Salem</option>
+                                    <option value="Sivaganga">Sivaganga</option>
+                                    <option value="Tenkasi">Tenkasi</option>
+                                    <option value="Thanjavur">Thanjavur</option>
+                                    <option value="Theni">Theni</option>
+                                    <option value="Thoothukudi">Thoothukudi</option>
+                                    <option value="Tiruchirappalli">Tiruchirappalli</option>
+                                    <option value="Tirunelveli">Tirunelveli</option>
+                                    <option value="Tirupathur">Tirupathur</option>
+                                    <option value="Tiruppur">Tiruppur</option>
+                                    <option value="Tiruvallur">Tiruvallur</option>
+                                    <option value="Tiruvannamalai">Tiruvannamalai</option>
+                                    <option value="Tiruvarur">Tiruvarur</option>
+                                    <option value="Vellore">Vellore</option>
+                                    <option value="Viluppuram">Viluppuram</option>
+                                    <option value="Virudhunagar">Virudhunagar</option>
+                                </select>
+                            </div>
 
-                <label>Pincode</label>
-                <input 
-                    className="bg-gray-300 sm:w-[30vw] w-[100%] outline-none border-none p-2 rounded-md"
-                    type="tel" 
-                    placeholder="Enter Pincode"
-                    value={formData.pinCode || ""}
-                    onChange={(e) => setFormData({ ...formData, pinCode: parseInt(e.target.value) })}
-                    autoComplete="on"
-                    required
-                />
+                            <div className="flex flex-col">
+                                <label className="block mb-2 text-sm font-semibold text-gray-700 dark:text-gray-300">Pincode</label>
+                                <input 
+                                    className="w-full p-3.5 bg-gray-50/50 dark:bg-gray-900/50 border border-gray-300 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all text-gray-900 dark:text-gray-100 shadow-sm"
+                                    type="number" 
+                                    placeholder="6-digit pincode"
+                                    value={formData.pinCode || ""}
+                                    onChange={(e) => setFormData({ ...formData, pinCode: parseInt(e.target.value) })}
+                                    autoComplete="on"
+                                    required
+                                />
+                            </div>
 
-                <label>Mobile Number</label>
-                <input 
-                    className="bg-gray-300 sm:w-[30vw] w-[100%] outline-none border-none p-2 rounded-md"
-                    type="tel" 
-                    placeholder="Enter Mobile No."
-                    value={formData.mobile || ""} 
-                    onChange={(e) => setFormData({ ...formData, mobile: parseInt(e.target.value) })}
-                    autoComplete="on" 
-                    required
-                />
+                            <div className="flex flex-col md:col-span-2">
+                                <label className="block mb-2 text-sm font-semibold text-gray-700 dark:text-gray-300">Password</label>
+                                <div className="relative w-full">
+                                    <input 
+                                        className="w-full p-3.5 pr-12 bg-gray-50/50 dark:bg-gray-900/50 border border-gray-300 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all text-gray-900 dark:text-gray-100 shadow-sm"
+                                        type={showPassword ? "text":"password"}
+                                        placeholder="Create a strong password"
+                                        value={formData.password}
+                                        onChange={(e) => setFormData({ ...formData, password: e.target.value })} 
+                                        required
+                                    />
+                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-500 hover:text-violet-600 transition-colors" onClick={()=>{setShowPassword(!showPassword)}}>
+                                        {showPassword ? <Eye className="size-5"/> : <EyeOff className="size-5"/>}
+                                    </div>
+                                </div>
+                                <span className="text-xs text-gray-500 dark:text-gray-400 mt-2 ml-1">Note: Please remember your password securely!</span>
+                            </div>
 
-                <label>Email</label>
-                <input 
-                    className="bg-gray-300 sm:w-[30vw] w-[100%] outline-none border-none p-2 rounded-md"
-                    type="email" 
-                    placeholder="Enter Email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    autoComplete="on"
-                    required
-                />
+                        </div>
 
-                <label>Password</label>
-                <div className="relative flex justify-between items-center sm:w-[30vw] w-[100%]">
+                        <div className="mt-4 flex flex-col md:flex-row items-center justify-between gap-6 border-t border-gray-200 dark:border-gray-800 pt-8">
+                            <div className="flex items-center gap-3"> 
+                                <input
+                                    className="w-5 h-5 text-violet-600 bg-gray-100 border-gray-300 rounded focus:ring-violet-500 dark:focus:ring-violet-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600 cursor-pointer"
+                                    type="checkbox" 
+                                    id="terms"
+                                    checked={isChecked}
+                                    onChange={() => setIsChecked(!isChecked)}
+                                /> 
+                                <label htmlFor="terms" className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">
+                                    I agree to the <a href="#" className="text-violet-600 dark:text-violet-400 hover:underline">Terms & Conditions</a>
+                                </label>
+                            </div>
 
-                <input 
-                    className="bg-gray-300 sm:w-[30vw] w-full outline-none border-none p-2 rounded-md"
-                    type={showPassword ? "text":"password"}
-                    placeholder="Enter Password"
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })} 
-                    required
-                />
-                <div className="absolute right-3 cursor-pointer" onClick={()=>{setShowPassword(!showPassword)}}>
-                  {
-                    showPassword ? 
-                      <Eye className="size-4"/> : <EyeOff className="size-4"/>
-                  }
-                  </div>
-                </div>
-                <div>Note: Remember Your password!</div>
-                <div className="text-center my-1"> 
-                    <input
-                        className=" bg-gray-300 mr-2 outline-none border-none p-2 rounded-md"
-                        type="checkbox" 
-                        checked={isChecked}
-                        onChange={() => setIsChecked(!isChecked)}
-                    /> 
-                    <span>I agree with <a href="#">Terms & Conditions</a></span>
-                </div>
-
-                <div className="sm:w-[30vw] w-[100%] text-center">
-                    <button className="w-full text-nowrap border-[1px] border-violet-800 rounded-md px-2 py-1 sm:px-5 sm:py-2.5 bg-violet-900 text-white transition-all duration-300 hover:scale-105" type="submit" onClick={handleSubmit} disabled={!isChecked}>
-                        Create Account
-                    </button>
-                    <div className="mt-2">
-                        <p>Already Registered? <Link className="underline text-violet-800" to='/login'>Login</Link></p>
-                    </div> 
+                            <button 
+                                className={`w-full md:w-auto px-10 py-3.5 rounded-xl font-bold text-white shadow-lg transition-all duration-300 transform ${isChecked ? 'bg-violet-600 hover:bg-violet-700 hover:shadow-violet-600/30 hover:-translate-y-1 cursor-pointer' : 'bg-gray-400 dark:bg-gray-600 cursor-not-allowed opacity-70'}`} 
+                                type="submit" 
+                                disabled={!isChecked}
+                            >
+                                Create Account
+                            </button>
+                        </div>
+                        
+                        <div className="text-center mt-2">
+                            <p className="text-gray-600 dark:text-gray-400 font-medium">Already Registered? <Link className="text-violet-600 dark:text-violet-400 hover:underline ml-1 font-bold" to='/login'>Log in here</Link></p>
+                        </div> 
+                    </form>
                 </div>
             </div>
-        </form>
-      </div>
+        </div>
     );
 };
 

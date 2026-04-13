@@ -47,7 +47,7 @@ const AllRequests = () => {
         <div className="flex flex-col sm:h-[75vh] sm:w-[15vw] w-full">
           <div className="flex sm:flex-col">
             <div
-              className="text-[1rem] sm:text-[1.2rem] cursor-pointer w-full m-3 flex h-[8vh] sm:h-[18vh] items-center justify-center rounded-lg shadow-sm shadow-gray-400"
+              className={`text-[1rem] sm:text-[1.2rem] cursor-pointer w-full m-3 flex h-[8vh] sm:h-[18vh] items-center justify-center rounded-lg shadow-sm shadow-gray-400 transition-all duration-300 ${isRecipients ? "bg-red-600 text-white" : "hover:bg-gray-100 dark:hover:bg-gray-800"}`}
               onClick={() => {
                 setIsRequests(false);
                 setIsRecipients(true);
@@ -58,7 +58,7 @@ const AllRequests = () => {
               <span className="">Recipients</span>
             </div>
             <div
-              className="text-[1rem] sm:text-[1.2rem] cursor-pointer w-full m-3 flex h-[8vh] sm:h-[18vh] items-center justify-center rounded-lg shadow-sm shadow-gray-400"
+              className={`text-[1rem] sm:text-[1.2rem] cursor-pointer w-full m-3 flex h-[8vh] sm:h-[18vh] items-center justify-center rounded-lg shadow-sm shadow-gray-400 transition-all duration-300 ${isRequests ? "bg-red-600 text-white" : "hover:bg-gray-100 dark:hover:bg-gray-800"}`}
               onClick={() => {
                 setIsRequests(true);
                 setIsRecipients(false);
@@ -71,7 +71,7 @@ const AllRequests = () => {
           </div>
           <div className="flex sm:flex-col">
             <div
-              className="cursor-pointer w-full m-3 flex h-[8vh] sm:h-[18vh] items-center justify-center rounded-lg shadow-sm shadow-gray-400"
+              className={`text-[1rem] sm:text-[1.2rem] cursor-pointer w-full m-3 flex h-[8vh] sm:h-[18vh] items-center justify-center rounded-lg shadow-sm shadow-gray-400 transition-all duration-300 ${isAcceptedRequests ? "bg-red-600 text-white" : "hover:bg-gray-100 dark:hover:bg-gray-800"}`}
               onClick={() => {
                 setIsAcceptedRequests(true);
                 setIsRequests(false);
@@ -82,7 +82,7 @@ const AllRequests = () => {
               <span className="">Accepted</span>
             </div>
             <div
-              className="cursor-pointer w-full m-3 flex h-[8vh] sm:h-[18vh] items-center justify-center rounded-lg shadow-sm shadow-gray-400"
+              className={`text-[1rem] sm:text-[1.2rem] cursor-pointer w-full m-3 flex h-[8vh] sm:h-[18vh] items-center justify-center rounded-lg shadow-sm shadow-gray-400 transition-all duration-300 ${isCompletedRequest ? "bg-red-600 text-white" : "hover:bg-gray-100 dark:hover:bg-gray-800"}`}
               onClick={() => {
                 setIsAcceptedRequests(false);
                 setIsRequests(false);

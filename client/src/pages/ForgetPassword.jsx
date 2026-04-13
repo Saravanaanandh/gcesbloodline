@@ -78,15 +78,19 @@ const ForgetPassword = () => {
     }
   }; 
   return (
-    <div className="w-full h-[100vh] bg-black text-white flex flex-col justify-center items-center">
-      <form onSubmit={handleSubmit} className="border p-5 rounded-lg w-md shadow-md shadow-gray-500 flex flex-col">
+    <div className="w-full min-h-screen bg-black text-white flex flex-col justify-center items-center px-4 sm:px-0">
+      <form onSubmit={handleSubmit} className="border p-6 sm:p-8 rounded-xl w-full max-w-[90vw] sm:max-w-md shadow-lg shadow-gray-800 flex flex-col bg-gray-950/80 backdrop-blur-sm border-gray-800">
+        <h2 className="text-2xl font-bold mb-6 text-center text-purple-400">
+          Reset Password
+        </h2>
+
         {step === 1 && (
-          <div className="flex flex-col gap-3 mb-5 w-full">
-            <label>Email</label>
+          <div className="flex flex-col gap-3 mb-6 w-full">
+            <label className="text-gray-300">Email Address</label>
             <input
-              className="p-2 rounded-md text-white outline-none border-2 border-gray-400"
+              className="p-3 bg-gray-900 rounded-md text-white outline-none border border-gray-700 focus:border-purple-500 transition-colors w-full"
               type="email"
-              placeholder="Email"
+              placeholder="Enter your email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -95,11 +99,11 @@ const ForgetPassword = () => {
         )}
 
         {step === 2 && (
-          <div className="flex flex-col gap-3 mb-5 ">
-            <label>Enter OTP</label>
-            <p>OTP sent to entered email</p>
+          <div className="flex flex-col gap-3 mb-6 w-full">
+            <label className="text-gray-300">Enter OTP</label>
+            <p className="text-sm text-gray-500">OTP sent to entered email</p>
             <input
-              className="p-2 rounded-md text-white outline-none border-2 border-gray-400"
+              className="p-3 bg-gray-900 rounded-md text-white outline-none border border-gray-700 focus:border-purple-500 transition-colors w-full tracking-widest text-center text-lg"
               type="text"
               placeholder="6-digit OTP"
               required
@@ -110,10 +114,10 @@ const ForgetPassword = () => {
         )}
 
         {step === 3 && (
-          <div className="flex flex-col gap-3 mb-5 relative">
-            <label>New Password</label>
+          <div className="flex flex-col gap-3 mb-6 relative w-full">
+            <label className="text-gray-300">New Password</label>
             <input
-              className=" p-2 rounded-md text-white outline-none border-2 border-gray-400"
+              className="p-3 bg-gray-900 rounded-md text-white outline-none border border-gray-700 focus:border-purple-500 transition-colors w-full pr-10"
               type={showPassword ? "text" : "password"}
               placeholder="New Password"
               required
@@ -122,33 +126,33 @@ const ForgetPassword = () => {
             />
 
             <div
-              className="absolute top-12 right-2"
+              className="absolute top-[42px] right-3 cursor-pointer text-gray-400 hover:text-white transition-colors"
               onClick={() => setShowPassword(!showPassword)}
             >
               {showPassword ? (
-                <Eye className="size-4" />
+                <Eye className="size-5" />
               ) : (
-                <EyeOff className="size-4" />
+                <EyeOff className="size-5" />
               )}
             </div>
           </div>
         )}
 
-        <div className="flex justify-between items-center">
+        <div className="flex justify-between items-center mt-2">
           <button type="button" onClick={(e)=> { e.preventDefault();navigate('/')}}
-            className="flex gap-3 items-center px-2 py-1 rounded-md bg-purple-800 text-white cursor-pointer"
+            className="flex gap-2 items-center px-4 py-2 sm:px-5 sm:py-2.5 rounded-lg border border-gray-700 hover:bg-gray-800 text-gray-300 hover:text-white transition-colors cursor-pointer text-sm sm:text-base"
             >
-            <ArrowLeft/> Back
+            <ArrowLeft className="size-4 sm:size-5"/> Back
           </button>
           <button
             type="submit"
-            className="flex gap-3 items-center px-2 py-1 rounded-md bg-purple-800 text-white cursor-pointer"
+            className="flex gap-2 items-center px-4 py-2 sm:px-6 sm:py-2.5 rounded-lg bg-purple-700 hover:bg-purple-600 text-white transition-all cursor-pointer font-medium text-sm sm:text-base"
           >
             {step === 1 ? (
               isOtpsending ? (
                 <div className="flex items-center gap-2">
                   <span>Sending...</span>
-                  <Loader2Icon className="animate-spin"/>
+                  <Loader2Icon className="animate-spin size-4"/>
                 </div>
               ) : (
                 "Next"
@@ -157,7 +161,7 @@ const ForgetPassword = () => {
               isOtpVerifing ? (
                 <div className="flex items-center gap-2">
                   <span>Verifying...</span>
-                  <Loader2Icon className="animate-spin"/>
+                  <Loader2Icon className="animate-spin size-4"/>
                 </div>
               ) : (
                 "Verify OTP"
@@ -167,7 +171,7 @@ const ForgetPassword = () => {
             )}
 
             {step === 1 && !isOtpsending && (
-              <ArrowRightIcon />
+              <ArrowRightIcon className="size-4 sm:size-5" />
             )}
           </button>
         </div>
