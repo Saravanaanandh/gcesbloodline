@@ -16,14 +16,16 @@ import {
 } from "lucide-react";
 import profilePic from "./../assets/user.png";
 import { useAuthStore } from "../store/useAuthStore.jsx";
+import FormRequiredModal from "../components/FormRequiredModal.jsx";
 
 const AllRequests = () => {
   const { allRequests, recipients,requests, getRequest,allRecipients,getRecipient,deleteRequest } = useRecipientStore();
-  const { authUser,isUserAsRecipient } = useAuthStore();
+  const { authUser,isUserAsRecipient,isUserAsDonor } = useAuthStore();
   const [isRecipients, setIsRecipients] = useState(false);
   const [isRequests, setIsRequests] = useState(false);
   const [isAcceptedRequests, setIsAcceptedRequests] = useState(false);
   const [isCompletedRequest, setIsCompletedRequests] = useState(false);
+  const [showDonorModal, setShowDonorModal] = useState(false);
 
   useEffect(() => {    
       allRecipients();
@@ -39,6 +41,11 @@ const AllRequests = () => {
 
   return (
     <div>
+      <FormRequiredModal
+        isOpen={showDonorModal}
+        onClose={() => setShowDonorModal(false)}
+        userType="donor"
+      />
       <Navbar />
       <h1 className="text-center text-red-600 text-[1.2rem] underline">
         <strong>All Requests</strong>
@@ -330,7 +337,17 @@ const AllRequests = () => {
                         {recipient.recipientProfile?.username.toUpperCase()}
                       </strong>
                     </h1>
-                    <button className="flex items-center gap-1 p-1 max-sm:text-[0.7rem] sm:px-3 sm:py-2 border-[1px] transition-all duration-200 rounded-sm  bg-green-700 text-white">
+                    <button
+                      className="flex items-center gap-1 p-1 max-sm:text-[0.7rem] sm:px-3 sm:py-2 border-[1px] transition-all duration-200 rounded-sm  bg-green-700 text-white"
+                      onClick={(e) => {
+                        if (!isUserAsDonor) {
+                          // non-donor trying to accept – show form popup
+                          e.preventDefault();
+                          setShowDonorModal(true);
+                        }
+                        // donors navigate to single request via Link normally
+                      }}
+                    >
                       Accept <MoveRight className="size-4" />
                     </button>
                   </div>

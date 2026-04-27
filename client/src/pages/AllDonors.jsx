@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore.jsx";
 import { motion } from "framer-motion"; 
+import FormRequiredModal from "../components/FormRequiredModal.jsx";
 
 const AllDonors = () => {
   const { authUser,isUserAsRecipient,isUserAsDonor } = useAuthStore();
@@ -23,6 +24,7 @@ const AllDonors = () => {
   const [isPending, setIsPending] = useState(false);
   const [isAccepted, setIsAccepted] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
+  const [showRecipientModal, setShowRecipientModal] = useState(false);
   const [filter, setFilter] = useState({
     fromage: 0,
     toage: 100,
@@ -61,6 +63,11 @@ const AllDonors = () => {
  
   return (
     <div>
+      <FormRequiredModal
+        isOpen={showRecipientModal}
+        onClose={() => setShowRecipientModal(false)}
+        userType="recipient"
+      />
       <Navbar />
       <h1 className="text-center text-red-600 text-[1.2rem] underline">
         <strong>All Donors</strong>
@@ -444,11 +451,19 @@ const AllDonors = () => {
                   </h1>
                   {
                     isUserAsRecipient ? (
+                      // Recipient: clicking the Link navigates to SingleDonor where they can send a request
                       <button className="text-[0.8rem] flex items-center gap-1 sm:px-3 sm:py-2 p-1 border-[1px] transition-all duration-200 rounded-sm  bg-green-700 text-white">
                         Send Request <SendHorizontalIcon className="size-4" />
                       </button>
                     ):(
-                      <button className="text-[0.8rem] flex items-center gap-1 sm:px-3 sm:py-2 p-1 border-[1px] transition-all duration-200 rounded-sm  bg-green-700 text-white">
+                      // Non-recipient: intercept and show form-required popup
+                      <button
+                        className="text-[0.8rem] flex items-center gap-1 sm:px-3 sm:py-2 p-1 border-[1px] transition-all duration-200 rounded-sm bg-green-700 text-white"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setShowRecipientModal(true);
+                        }}
+                      >
                         View <Eye className="size-4" />
                       </button>
                     )

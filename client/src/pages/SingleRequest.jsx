@@ -1,6 +1,6 @@
  
-import Navbar from "../components/Navbar.jsx" 
-import { useEffect,useState} from "react"
+import Navbar from "../components/Navbar.jsx"
+import { useEffect, useState } from "react"
 import bannerImg from './../assets/banner.png'
 import { AlertTriangleIcon, CheckCheck, CheckCircle, CircleAlert, Clock, DropletsIcon, Smartphone, X} from "lucide-react"
 import profilePic from './../assets/user.png'
@@ -10,11 +10,14 @@ import { useRecipientStore} from '../store/useRecipientStore.jsx'
 import { useNavigate } from "react-router"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog.jsx"
 import { useAuthStore } from "@/store/useAuthStore.jsx"
+import FormRequiredModal from "../components/FormRequiredModal.jsx"
 
-const SingleRequest = () => { 
+const SingleRequest = () => {
 
     const [showToggle, setShowToggle] = useState(false);
-    
+    const [showDonorModal, setShowDonorModal] = useState(false);
+    const [forcedDonorModal, setForcedDonorModal] = useState(false);
+
     useEffect(() => {
         const timer = setTimeout(() => {
             setShowToggle(true);  // Enable rendering after delay
@@ -25,13 +28,36 @@ const SingleRequest = () => {
     const navigate = useNavigate()
     const {id:recipientId} = useParams()  
     const {recipient,acceptRequest, rejectRequest,getRecipient,confirmedRequest,rejectAcceptedRequest} = useRecipientStore()
-    const {isUserAsDonor} = useAuthStore()
+    const { isUserAsDonor, isCheckAuth } = useAuthStore()
     useEffect(()=>{
       getRecipient(recipientId)
-    },[recipientId]) 
-    
+    },[recipientId])
+
+    // Auto-show forced popup on page load if user hasn't filled donor form
+    // Wait for auth check to resolve to avoid false positive on first render
+    useEffect(() => {
+        if (!isCheckAuth && !isUserAsDonor) {
+            setForcedDonorModal(true);
+        } else if (!isCheckAuth && isUserAsDonor) {
+            setForcedDonorModal(false);
+        }
+    }, [isCheckAuth, isUserAsDonor]);
+
     return (
         <div className="min-h-[100vh]">
+            {/* Forced page-load popup when donor form not filled */}
+            <FormRequiredModal
+                isOpen={forcedDonorModal}
+                onClose={() => {}}
+                userType="donor"
+                forced={true}
+            />
+            {/* Action-triggered popup (clicking Accept/Reject without donor form) */}
+            <FormRequiredModal
+                isOpen={showDonorModal}
+                onClose={() => setShowDonorModal(false)}
+                userType="donor"
+            />
             <Navbar/>
             <div className="relative rounded-lg w-full h-[25vh] sm:h-[40vh] bg-no-repeat bg-cover bg-center" style={{backgroundImage:`url(${ recipient.recipientProfile?.banner || bannerImg})`}}> 
             </div>
@@ -166,7 +192,7 @@ const SingleRequest = () => {
                             <button 
                                 className="cursor-pointer" 
                                 onClick={()=>{
-                                    
+                                    if (!isUserAsDonor) { setShowDonorModal(true); return; }
                                     rejectRequest(recipient.request?._id);
                                     navigate('/allrequests')
                                 }}
@@ -178,6 +204,7 @@ const SingleRequest = () => {
                             <button 
                                 className="cursor-pointer" 
                                 onClick={()=>{
+                                    if (!isUserAsDonor) { setShowDonorModal(true); return; }
                                     acceptRequest(recipient.request?._id);
                                     navigate('/allrequests')
                                 }}
