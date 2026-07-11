@@ -7,6 +7,7 @@ import bloodReqRouter from './routes/reqBlood.route.js'
 import donorRouter from './routes/donor.route.js'
 import otpRouter from './routes/otp.route.js'
 import recipientRouter from './routes/recipient.route.js'
+import aiRouter from './routes/ai.route.js'
 import { verifyJWT } from './middleware/auth.middleware.js'
 import cors from 'cors'
 import path from 'path'
@@ -42,6 +43,7 @@ app.use('/api/v1/request',apiLimiter,verifyJWT,bloodReqRouter)
 app.use('/api/v1/recipient',apiLimiter,verifyJWT,recipientRouter)
 app.use('/api/v1/donate',apiLimiter,verifyJWT,donorRouter)
 app.use('/api/v1/otp',apiLimiter,verifyJWT, otpRouter)
+app.use('/api/v1/ai',apiLimiter,verifyJWT, aiRouter)
 
 
 if(process.env.NODE_ENV==="production"){

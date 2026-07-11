@@ -23,6 +23,7 @@ import ContactAndSupport from './pages/ContactAndSupport'
 import PrivacyPolicy from './pages/PrivacyPolicy.jsx'
 import AccountDeletion from './pages/AccountDeletion.jsx'
 import DataDeletion from './pages/DataDeletion.jsx'
+import ChatBot from './components/ChatBot.jsx'
 
 function App() { 
   const {authUser, checkAuth,isCheckAuth} = useAuthStore()
@@ -59,6 +60,7 @@ function App() {
         <Route path='*' element={<Navigate to={'/'}/>}/>
       </Routes>
       <Toaster/>
+      <ChatBot/>
     </div>
   )
 }
