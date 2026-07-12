@@ -21,6 +21,7 @@ const Request = () => {
         reqDate:new Date(Date.now()).toISOString().split('T')[0],
         bloodUnits:"",
         isCritical:true,
+        hospitalInfo:"",
         note:""
     }) 
     const {createRecipient} = useRecipientStore()
@@ -56,7 +57,8 @@ const Request = () => {
             pinCode:"",
             reqDate:"",
             bloodUnits:"",
-            isCritical:isChecked,
+            isCritical:true,
+            hospitalInfo:"",
             note:""
         }) 
         navigate('/alldonors')  
@@ -356,6 +358,16 @@ const Request = () => {
                     value={formData.bloodUnits || ""} 
                     onChange={(e)=> setFormData({...formData, bloodUnits:parseInt(e.target.value)})}
                     required
+                />
+             </div> 
+             <div className="flex flex-col gap-1">
+                <label>Hospital Name (Optional):</label>
+                <input 
+                    type="text" 
+                    className="border-[1px] border-black dark:text-black rounded-sm outline-none bg-white px-2 py-1"
+                    placeholder="Hospital Name"
+                    value={formData.hospitalInfo || ""} 
+                    onChange={(e)=> setFormData({...formData, hospitalInfo:e.target.value})}
                 />
              </div> 
             <div className="sm:hidden flex flex-wrap gap-3">

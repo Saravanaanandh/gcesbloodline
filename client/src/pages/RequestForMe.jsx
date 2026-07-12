@@ -22,6 +22,7 @@ const RequestMe = () => {
         reqDate:new Date(Date.now()).toISOString().split('T')[0],
         bloodUnits:"",
         isCritical:isChecked,
+        hospitalInfo:"",
         note:""
     })
     useEffect(()=>{
@@ -49,6 +50,7 @@ const RequestMe = () => {
             reqDate:"",
             bloodUnits:"",
             isCritical:isChecked,
+            hospitalInfo:"",
             note:""
         })
         navigate('/alldonors') 
@@ -94,6 +96,16 @@ const RequestMe = () => {
                     value={formData.bloodUnits || ""} 
                     onChange={(e)=> setFormData({...formData, bloodUnits:parseInt(e.target.value)})}
                     required
+                />
+             </div>  
+             <div className="sm:w-1/4 w-3/4  flex flex-col gap-1">
+                <label>Hospital Name (Optional):</label>
+                <input 
+                    type="text" 
+                    className="border-[1px] border-black dark:text-black rounded-sm outline-none bg-white px-2 py-1"
+                    placeholder="Hospital Name"
+                    value={formData.hospitalInfo || ""} 
+                    onChange={(e)=> setFormData({...formData, hospitalInfo:e.target.value})}
                 />
              </div>  
               <div className="sm:w-1/4 w-3/4 flex flex-wrap gap-3 dark:text-white">
