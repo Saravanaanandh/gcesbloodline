@@ -5,7 +5,7 @@ import Requests from '../model/Request.js';
 import Completed from '../model/Completed.js';
 import { Ollama } from 'ollama';
 
-const OLLAMA_API_KEY = "59fd40daf6b8495f8c437d347aeff2ea.GW2hIphBSwKiQMVP9jg5HQ3T";
+const OLLAMA_API_KEY = process.env.OLLAMA_API_KEY;
 
 const ollama = new Ollama({
     host: "https://ollama.com",
