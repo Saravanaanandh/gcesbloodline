@@ -40,7 +40,46 @@ export const getUserContext = async (req, res) => {
 
         const uid = userId.toString();
 
+        // Fetch all available donors in the platform
+        const availableDonorsList = await User.find({ available: true, donorId: { $exists: true } });
+
+        // Fetch all active blood requests (recipients) in the platform
+        const activeRecipientsList = await ReqBlood.find({});
+        const activeRecipientsWithDetails = await Promise.all(activeRecipientsList.map(async (r) => {
+            const u = await User.findOne({ _id: r.recipientId }).select('username bloodType location');
+            if (!u) return null;
+            return {
+                patientName: r.patientsName,
+                bloodGroupNeeded: r.bloodType,
+                location: r.location,
+                bloodUnits: r.bloodUnits,
+                hospital: r.hospitalInfo,
+                isCritical: r.isCritical,
+                isDonorFound: r.isDonorFinded
+            };
+        }));
+        const activeRecipients = activeRecipientsWithDetails.filter(Boolean);
+
         const context = {
+            availableDonors: availableDonorsList.map(d => ({
+                name: d.username,
+                bloodType: d.bloodType,
+                location: d.location,
+                pinCode: d.pinCode,
+                donationCount: d.donation,
+                weight: d.weight,
+                lastDonated: d.lastDonated || null,
+                nextDonationDate: d.nextDonationDate || null
+            })),
+            activeRequests: activeRecipients.map(r => ({
+                patientName: r.patientName,
+                bloodGroupNeeded: r.bloodGroupNeeded,
+                location: r.location,
+                units: r.bloodUnits,
+                hospital: r.hospital || 'Not specified',
+                isCritical: r.isCritical ? 'Yes' : 'No',
+                isDonorFound: r.isDonorFound ? 'Yes' : 'No'
+            })),
             profile: {
                 name: user.username,
                 age: user.age,
