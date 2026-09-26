@@ -183,11 +183,11 @@ const SingleRequest = () => {
                            {recipient.recipientDetail?.pinCode} 
                         </p>
                     </li>
-                    {recipient.recipientDetail?.hospitalInfo && (
+                    {recipient.recipientDetail?.hospitalInfo?.trim() && (
                         <li className="w-full flex items-center justify-between border-b-[1px] border-b-black dark:border-white pb-2 sm:px-5">
                             <h3>Hospital Name</h3>
                             <p className="text-end">
-                               {recipient.recipientDetail.hospitalInfo}
+                               {recipient.recipientDetail.hospitalInfo.trim()}
                             </p>
                         </li>
                     )}

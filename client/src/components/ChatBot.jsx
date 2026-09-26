@@ -154,7 +154,7 @@ const buildSystemPrompt = (userCtx) => {
     : "None";
 
   const requestsStr = userCtx.activeRequests && userCtx.activeRequests.length > 0
-    ? userCtx.activeRequests.map(r => `- Patient ${r.patientName} needs ${r.bloodGroupNeeded} (${r.units} units) at ${r.hospital}, ${r.location} (Critical: ${r.isCritical}, Donor Found: ${r.isDonorFound})`).join('\n')
+    ? userCtx.activeRequests.map(r => `- Patient ${r.patientName} needs ${r.bloodGroupNeeded} (${r.units} units)${r.hospital ? ` at ${r.hospital}` : ''}, ${r.location} (Critical: ${r.isCritical}, Donor Found: ${r.isDonorFound})`).join('\n')
     : "None";
 
   return `${APP_KNOWLEDGE}
@@ -231,11 +231,15 @@ export default function ChatBot() {
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
 
+  const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  useEffect(() => {
+    if (authUser) {
+      scrollToBottom();
+    }
+  }, [messages, authUser]);
+
   // Only show for logged-in users
   if (!authUser) return null;
-
-  const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  useEffect(() => { scrollToBottom(); }, [messages]);
 
   const loadContextAndOpen = async () => {
     if (isOpen) { setIsOpen(false); return; }

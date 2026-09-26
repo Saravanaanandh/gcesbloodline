@@ -246,7 +246,10 @@ const AllRequests = () => {
                         {" "}
                         Age : {recipient.recipient?.patientsage} | Gender :{" "}
                         {recipient.recipient?.gender} | location :{" "}
-                        {recipient.recipient?.location}{" "}
+                        {recipient.recipient?.location}
+                        {recipient.recipient?.hospitalInfo?.trim() && (
+                          <> | Hospital : {recipient.recipient.hospitalInfo.trim()}</>
+                        )}
                       </p>
                     </div>
                   </div>
@@ -273,6 +276,11 @@ const AllRequests = () => {
                         </span> 
                       ):("")
                     } 
+                    {recipient.recipient?.hospitalInfo?.trim() && (
+                      <span className="text-[0.7rem] text-gray-500 dark:text-gray-400 truncate max-w-[110px] text-center" title={recipient.recipient.hospitalInfo}>
+                        🏥 {recipient.recipient.hospitalInfo.trim()}
+                      </span>
+                    )}
                   </div> 
                 </div>
               </Link>
@@ -326,7 +334,10 @@ const AllRequests = () => {
                         {" "}
                         Age : {recipient.recipient?.patientsage} | Gender :{" "}
                         {recipient.recipient?.gender} | location :{" "}
-                        {recipient.recipient?.location}{" "}
+                        {recipient.recipient?.location}
+                        {recipient.recipient?.hospitalInfo?.trim() && (
+                          <> | Hospital : {recipient.recipient.hospitalInfo.trim()}</>
+                        )}
                       </p>
                     </div>
                   </div>
@@ -363,6 +374,11 @@ const AllRequests = () => {
                         </span> 
                       ):("")
                     } 
+                    {recipient.recipient?.hospitalInfo?.trim() && (
+                      <span className="text-[0.7rem] text-gray-500 dark:text-gray-400 truncate max-w-[110px] text-center" title={recipient.recipient.hospitalInfo}>
+                        🏥 {recipient.recipient.hospitalInfo.trim()}
+                      </span>
+                    )}
                   </div> 
                 </div>
               </Link>
@@ -415,7 +431,10 @@ const AllRequests = () => {
                         {" "}
                         Age : {recipient.recipient?.patientsage} | Gender :{" "}
                         {recipient.recipient?.gender} | location :{" "}
-                        {recipient.recipient?.location}{" "}
+                        {recipient.recipient?.location}
+                        {recipient.recipient?.hospitalInfo?.trim() && (
+                          <> | Hospital : {recipient.recipient.hospitalInfo.trim()}</>
+                        )}
                       </p>
                     </div>
                   </div>
@@ -453,6 +472,11 @@ const AllRequests = () => {
                         </span> 
                       ):("")
                     } 
+                    {recipient.recipient?.hospitalInfo?.trim() && (
+                      <span className="text-[0.7rem] text-gray-500 dark:text-gray-400 truncate max-w-[110px] text-center" title={recipient.recipient.hospitalInfo}>
+                        🏥 {recipient.recipient.hospitalInfo.trim()}
+                      </span>
+                    )}
                   </div> 
                 </div>
               </Link>
@@ -505,7 +529,10 @@ const AllRequests = () => {
                         {" "}
                         Age : {recipient.recipient?.patientsage} | Gender :{" "}
                         {recipient.recipient?.gender} | location :{" "}
-                        {recipient.recipient?.location}{" "}
+                        {recipient.recipient?.location}
+                        {recipient.recipient?.hospitalInfo?.trim() && (
+                          <> | Hospital : {recipient.recipient.hospitalInfo.trim()}</>
+                        )}
                       </p>
                     </div>
                   </div>
@@ -541,6 +568,11 @@ const AllRequests = () => {
                         </span> 
                       ):("")
                     } 
+                    {recipient.recipient?.hospitalInfo?.trim() && (
+                      <span className="text-[0.7rem] text-gray-500 dark:text-gray-400 truncate max-w-[110px] text-center" title={recipient.recipient.hospitalInfo}>
+                        🏥 {recipient.recipient.hospitalInfo.trim()}
+                      </span>
+                    )}
                   </div> 
                 </div>
               </Link>

@@ -52,6 +52,7 @@ export const sendRequest = async(req, res)=>{
         //             </p>
         //             <p>You have received a <strong>Blood Donation Request</strong> from <strong>${recipient.username}</strong>.</p>
         //             <p><strong>Your small act of kindness can save a precious life! 💖</strong></p>
+        //             ${recipientDetail.hospitalInfo?.trim() ? `<p><strong>Hospital:</strong> ${recipientDetail.hospitalInfo.trim()}</p>` : ''}
         //             <p style="display:flex; flex-direction:column; gap:10px;">
         //                 <strong>Additional Message from Requester:</strong>
         //             </p>

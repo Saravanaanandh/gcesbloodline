@@ -19,7 +19,10 @@ const Login = () => {
 
         if(!formData.email || !formData.password) return toast.error("please fill the required fields!")
         try{
-            await login(formData) 
+            const success = await login(formData) 
+            if (success) {
+                navigate('/')
+            }
         }catch(err){
             console.log(err.message)
             toast.error("something went wrong, try again later"+err.message)

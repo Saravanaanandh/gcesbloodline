@@ -60,7 +60,7 @@ function App() {
         <Route path='*' element={<Navigate to={'/'}/>}/>
       </Routes>
       <Toaster/>
-      <ChatBot/>
+      {authUser && <ChatBot/>}
     </div>
   )
 }

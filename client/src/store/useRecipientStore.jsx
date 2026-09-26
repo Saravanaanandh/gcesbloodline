@@ -166,16 +166,24 @@ export const useRecipientStore = create((set,get)=>({
              
             const redirectPage = `https://gcesbloodline.onrender.com/allrequests/${recipient.data.recipientDetail._id}`
             
+            const recipientDetail = recipient.data.recipientDetail;
+            const hospital = recipientDetail?.hospitalInfo?.trim();
+            const emailParams = {
+                donor: donor.data.donorDetail.username,
+                recipient: recipientDetail.AttendeesName,
+                email: donor.data.donorDetail.email,
+                message: recipientDetail.note,
+                link: redirectPage,
+            };
+            if (hospital) {
+                emailParams.hospital = hospital;
+                emailParams.hospital_name = hospital;
+            }
+            
             emailjs.send(
                 "service_zi6mag1",        
                 "template_uxd4tem",       
-                {
-                    donor: donor.data.donorDetail.username,
-                    recipient: recipient.data.recipientDetail.AttendeesName,
-                    email: donor.data.donorDetail.email,
-                    message: recipient.data.recipientDetail.note,
-                    link: redirectPage,
-                },
+                emailParams,
                 publicKey      
                 )
                 .then(async() => {

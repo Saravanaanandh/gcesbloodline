@@ -5,6 +5,27 @@ import OTPPasswordReset from '../model/OTPforPasswordReset.js'
 import User from './../model/User.js' 
 
 
+const isProduction = process.env.NODE_ENV === "production";
+
+const getCookieOptions = (req) => {
+    const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https' || (isProduction && !req.headers.host?.includes('localhost'));
+    return {
+        httpOnly: true,
+        maxAge: 30 * 24 * 60 * 60 * 1000,
+        secure: isHttps,
+        sameSite: isHttps ? "none" : "lax"
+    };
+};
+
+const getClearCookieOptions = (req) => {
+    const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https' || (isProduction && !req.headers.host?.includes('localhost'));
+    return {
+        httpOnly: true,
+        secure: isHttps,
+        sameSite: isHttps ? "none" : "lax"
+    };
+};
+
 export const signupController = async (req, res)=>{
     const {username,age, gender, bloodType,location,pinCode,mobile, email, password} = req.body 
     if(!username || !email || !gender || !password || !age || !bloodType || !location || !pinCode || !mobile) return res.status(400).json({message:"please fill required fields"})
@@ -16,7 +37,7 @@ export const signupController = async (req, res)=>{
         const token = user.createJWT() 
         user.token = token 
 
-        res.cookie('jwt',token,{httpOnly:true,maxAge:30*24*60*60*1000, secure:true, sameSite:"None"})
+        res.cookie('jwt', token, getCookieOptions(req))
         res.status(201).json(user) 
     }catch(err){
         res.status(400).json({message:err.name})
@@ -36,24 +57,45 @@ export const loginController = async (req, res)=>{
     const token = user.createJWT()
     user.token = token
 
-    res.cookie('jwt',token,{httpOnly:true,maxAge:30*24*60*60*1000, secure:true, sameSite:"none"})
+    res.cookie('jwt', token, getCookieOptions(req))
     res.status(200).json(user)
 }
 
 export const updateProfileController = async (req, res)=>{
-    const {location, available, profile, banner, tattooIn12, pinCode, mobile, positiveHIVTest,weight} = req.body
+    const {location, available, profile, banner, tattooIn12, pinCode, mobile, positiveHIVTest, weight, age, bloodType, gender, username} = req.body
     try{
         const user = req.user
         if(!user) return res.status(401).json({message:"unauthorized User"}) 
-        let updatedUser = await User.findOneAndUpdate({email:user.email},{location, available, tattooIn12, pinCode, mobile, positiveHIVTest,weight},{new:true,runValidators:true})
+        
+        const updateFields = {}
+        if (username !== undefined && username !== null && username.trim() !== "") updateFields.username = username.trim()
+        if (location !== undefined && location !== null && location !== "") updateFields.location = location
+        if (available !== undefined && available !== null) updateFields.available = available
+        if (tattooIn12 !== undefined && tattooIn12 !== null) updateFields.tattooIn12 = tattooIn12
+        if (positiveHIVTest !== undefined && positiveHIVTest !== null) updateFields.positiveHIVTest = positiveHIVTest
+        if (pinCode !== undefined && pinCode !== null && pinCode !== "") updateFields.pinCode = Number(pinCode)
+        if (mobile !== undefined && mobile !== null && mobile !== "") updateFields.mobile = Number(mobile)
+        if (weight !== undefined && weight !== null && weight !== "") updateFields.weight = Number(weight)
+        if (age !== undefined && age !== null && age !== "") updateFields.age = Number(age)
+        if (bloodType !== undefined && bloodType !== null && bloodType !== "") updateFields.bloodType = bloodType
+        if (gender !== undefined && gender !== null && gender !== "") updateFields.gender = gender
+
+        let updatedUser = user
+        if (Object.keys(updateFields).length > 0) {
+            updatedUser = await User.findOneAndUpdate(
+                {email:user.email},
+                {$set: updateFields},
+                {new:true, runValidators:true}
+            )
+        }
             
         if(profile){
             const uploadedResponse = await cloudinary.uploader.upload(profile)
-            updatedUser = await User.findOneAndUpdate({email:user.email},{profile:uploadedResponse.secure_url},{new:true})
+            updatedUser = await User.findOneAndUpdate({email:user.email},{$set: {profile:uploadedResponse.secure_url}},{new:true})
         }
         if(banner){
             const uploadedResponse = await cloudinary.uploader.upload(banner)
-            updatedUser = await User.findOneAndUpdate({email:user.email},{banner:uploadedResponse.secure_url},{new:true})
+            updatedUser = await User.findOneAndUpdate({email:user.email},{$set: {banner:uploadedResponse.secure_url}},{new:true})
         } 
         const newUser = updatedUser  
         res.status(200).json(newUser)  
@@ -74,7 +116,7 @@ export const logoutController = async (req, res)=>{
     if(!user) return res.status(404).json({message:"user not found"}) 
     user.token = ""
 
-    res.clearCookie('jwt',{httpOnly:true, secure:true, sameSite:"None"})
+    res.clearCookie('jwt', getClearCookieOptions(req))
     res.status(204).json({message:"user logout successfully"})
 } 
 

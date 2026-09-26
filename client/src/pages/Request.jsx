@@ -4,6 +4,7 @@ import toast from "react-hot-toast"
 import Navbar from "../components/Navbar.jsx"
 import requestImg from './../assets/requestPageImg.png' 
 import { useNavigate } from "react-router"
+import HospitalAutocomplete from "../components/HospitalAutocomplete.jsx"
 const Request = () => {
     
     const navigate = useNavigate()
@@ -41,7 +42,10 @@ const Request = () => {
             return toast.error(`Check! You require ${formData.bloodUnits} units of blood`);
         }
         try{
-            await createRecipient(formData)
+            await createRecipient({
+                ...formData,
+                hospitalInfo: formData.hospitalInfo ? formData.hospitalInfo.trim() : ""
+            })
         }catch(err){
             console.log(err.message)
         }
@@ -361,13 +365,14 @@ const Request = () => {
                 />
              </div> 
              <div className="flex flex-col gap-1">
-                <label>Hospital Name (Optional):</label>
-                <input 
-                    type="text" 
-                    className="border-[1px] border-black dark:text-black rounded-sm outline-none bg-white px-2 py-1"
-                    placeholder="Hospital Name"
-                    value={formData.hospitalInfo || ""} 
-                    onChange={(e)=> setFormData({...formData, hospitalInfo:e.target.value})}
+                <label htmlFor="hospitalInfo">Hospital Name (Optional):</label>
+                <HospitalAutocomplete
+                    id="hospitalInfo"
+                    name="hospitalInfo"
+                    value={formData.hospitalInfo || ""}
+                    onChange={(val) => setFormData({ ...formData, hospitalInfo: val })}
+                    placeholder="Search or enter hospital name"
+                    className="border-[1px] border-black dark:text-black rounded-sm outline-none bg-white px-2 py-1 w-full"
                 />
              </div> 
             <div className="sm:hidden flex flex-wrap gap-3">

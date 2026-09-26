@@ -55,12 +55,16 @@ export const useAuthStore = create((set,get)=>({
         set({isSignUp:true})
         try{ 
             const res = await axiosInstance.post('/auth/signup',data)
-            set({authUser:res.data})
+            const isRecipient = res.data.recipientId ? true : false
+            const isDonor = res.data.donorId ? true : false
+            set({authUser:res.data, isUserAsDonor: isDonor, isUserAsRecipient: isRecipient})
             set({users:[...get().users, res.data]})
             get().getConnected()
             toast.success("signed up successfully") 
+            return true
         }catch(err){ 
-            toast.error(err.response.data.message)
+            toast.error(err.response?.data?.message || err.message || "Signup failed")
+            return false
         }finally{
             set({isSignUp:false})
         }
@@ -69,11 +73,15 @@ export const useAuthStore = create((set,get)=>({
         set({isLogin:true})
         try{
             const res = await axiosInstance.post('/auth/login',data)
-            set({authUser:res.data})
+            const isRecipient = res.data.recipientId ? true : false
+            const isDonor = res.data.donorId ? true : false
+            set({authUser:res.data, isUserAsDonor: isDonor, isUserAsRecipient: isRecipient})
             get().getConnected()
             toast.success("logged in successfully!")  
+            return true
         }catch(err){
-            toast.error(err.response.data.message)
+            toast.error(err.response?.data?.message || err.message || "Login failed")
+            return false
         }finally{
             set({isLogin:false})
         }
@@ -84,9 +92,10 @@ export const useAuthStore = create((set,get)=>({
         try{
             await axiosInstance.delete('/auth/logout')
             get().disConnected()
-            set({authUser:null}) 
+            set({authUser:null, isUserAsDonor: false, isUserAsRecipient: false}) 
         }catch(err){
             toast.error(err.message)
+            set({authUser:null, isUserAsDonor: false, isUserAsRecipient: false}) 
         }finally{
             set({isLogout:false})
         }
@@ -95,17 +104,23 @@ export const useAuthStore = create((set,get)=>({
         set({isProfileUpdating:true})
         try{ 
             const socket = get().socket
-            socket.off("updateProfile")
+            socket?.off("updateProfile")
             const res = await axiosInstance.put('/auth/update-profile', data)
-            set({authUser:res.data}) 
-            socket.on("updateProfile",(updatedDetail)=>{ 
-                if(get().authUser._id == updatedDetail._id){
-                    set({authUser:updatedDetail}) 
+            const isRecipient = res.data.recipientId ? true : false
+            const isDonor = res.data.donorId ? true : false
+            set({authUser:res.data, isUserAsDonor: isDonor, isUserAsRecipient: isRecipient}) 
+            socket?.on("updateProfile",(updatedDetail)=>{ 
+                if(get().authUser?._id === updatedDetail?._id){
+                    const isRec = updatedDetail.recipientId ? true : false
+                    const isDon = updatedDetail.donorId ? true : false
+                    set({authUser:updatedDetail, isUserAsDonor: isDon, isUserAsRecipient: isRec}) 
                 }
             })
-            toast.success("profile Updated") 
+            toast.success("Profile updated successfully") 
+            return res.data
         }catch(err){ 
-            toast.error(err.response.data.message)
+            toast.error(err.response?.data?.message || err.message || "Failed to update profile")
+            throw err
         }finally{
             set({isProfileUpdating:false})
         }
@@ -114,9 +129,11 @@ export const useAuthStore = create((set,get)=>({
         set({isGetUser:true})
         try{
             const res = await axiosInstance.get('/auth/')  
-            set({authUser:res.data})  
+            const isRecipient = res.data.recipientId ? true : false
+            const isDonor = res.data.donorId ? true : false
+            set({authUser:res.data, isUserAsDonor: isDonor, isUserAsRecipient: isRecipient})  
         }catch(err){
-            set({authUser:null})
+            // do not reset authUser to null immediately if checkAuth succeeded
         }finally{
             set({isGetUser:false})
         }

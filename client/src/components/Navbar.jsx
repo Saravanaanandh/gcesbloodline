@@ -1,15 +1,20 @@
 import { useAuthStore } from "../store/useAuthStore.jsx"
-import { Link, useParams} from "react-router"
+import { Link, useParams, useNavigate } from "react-router"
 import {ArrowBigRightDashIcon, CircleAlert, Contact, Contact2, ContactIcon, Headset, Home, LogOut, Mail, MoonStar, SunIcon, User} from 'lucide-react'
 import logo from './../assets/logo.png'
 import {motion} from 'framer-motion' 
 import { useTheme } from "next-themes"
 const Navbar = () => {
     
+    const navigate = useNavigate()
     const {theme, setTheme} = useTheme()
     const {authUser,logout} = useAuthStore()
     const handleProfileClick = async()=>{
         console.log(authUser)
+    }
+    const handleLogout = async()=>{
+        await logout()
+        navigate('/')
     }
     const {id:userId} = useParams()
 
@@ -68,11 +73,9 @@ const Navbar = () => {
             }
             {
                 isProfilePage && (
-                    <Link to='/login'>
-                        <button className="bg-red-500 rounded-md text-white px-1.5 py-1 sm:px-3 sm:py-2 transition-all duration-200 hover:scale-105" onClick={logout}>
-                            <div className="flex items-center gap-1 ">logout <LogOut className="size-4 sm:size-6"/></div>
-                        </button>
-                    </Link>
+                    <button className="bg-red-500 hover:bg-red-600 rounded-md text-white px-2.5 py-1.5 sm:px-3 sm:py-2 transition-all duration-200 hover:scale-105 cursor-pointer flex items-center gap-1 text-sm sm:text-base font-medium" onClick={handleLogout}>
+                        <span>Logout</span> <LogOut className="size-4 sm:size-5"/>
+                    </button>
                 )
             }
             

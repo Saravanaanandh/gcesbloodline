@@ -18,6 +18,8 @@ import rateLimit from 'express-rate-limit'
 dotenv.config() 
 const PORT = process.env.PORT || 5000
 
+app.set("trust proxy", 1)
+
 app.use(cors({
     origin:["https://gces-bloodline.web.app","http://192.168.56.1:5173","http://10.45.38.231:5173","https://blood-donation-o7z9.onrender.com","http://localhost:5173"], 
     methods: "GET,POST,PATCH,PUT,DELETE",

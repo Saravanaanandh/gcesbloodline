@@ -53,7 +53,7 @@ export const getUserContext = async (req, res) => {
                 bloodGroupNeeded: r.bloodType,
                 location: r.location,
                 bloodUnits: r.bloodUnits,
-                hospital: r.hospitalInfo,
+                hospital: r.hospitalInfo?.trim() || null,
                 isCritical: r.isCritical,
                 isDonorFound: r.isDonorFinded
             };
@@ -76,7 +76,7 @@ export const getUserContext = async (req, res) => {
                 bloodGroupNeeded: r.bloodGroupNeeded,
                 location: r.location,
                 units: r.bloodUnits,
-                hospital: r.hospital || 'Not specified',
+                hospital: r.hospital || null,
                 isCritical: r.isCritical ? 'Yes' : 'No',
                 isDonorFound: r.isDonorFound ? 'Yes' : 'No'
             })),
@@ -113,7 +113,7 @@ export const getUserContext = async (req, res) => {
                     bloodGroupNeeded: recipientData.bloodType,
                     location: recipientData.location,
                     bloodUnits: recipientData.bloodUnits,
-                    hospital: recipientData.hospitalInfo || 'Not specified',
+                    hospital: recipientData.hospitalInfo?.trim() || null,
                     isCritical: recipientData.isCritical,
                     isDonorFound: recipientData.isDonorFinded,
                 } : null,
