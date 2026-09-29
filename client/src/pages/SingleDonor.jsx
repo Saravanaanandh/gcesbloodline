@@ -384,16 +384,17 @@ const SingleDonor = () => {
                             </p>
                         )}
 
-                        {/* A fulfilled request is a success and gets its own copy: there is no new
-                            date to offer, only a new request from a separate profile. */}
+                        {/* A fulfilled request is a success and gets its own copy: nothing to
+                            extend, just an invitation to raise the next one. */}
                         {requestClosed && closedReason === "fulfilled" && (
                             <div className="mt-4 flex items-start gap-3 rounded-2xl border-2 border-emerald-300 bg-emerald-50 dark:border-emerald-500/50 dark:bg-emerald-500/10 px-4 py-3">
                                 <Heart className="size-5 shrink-0 mt-0.5 text-emerald-600 dark:text-emerald-400" />
                                 <div className="text-sm">
                                     <p className="font-bold text-emerald-700 dark:text-emerald-300">Your blood request is fulfilled</p>
                                     <p className="text-neutral-700 dark:text-neutral-300 mt-1">
-                                        A donation was completed for this request, so it is closed for good. If
-                                        more blood is needed, raise a new request from a separate profile.
+                                        A donation was completed for this request, so it is closed and kept in
+                                        your request history. If more blood is needed, submit the Blood Request
+                                        Form again to raise a new one.
                                     </p>
                                 </div>
                             </div>

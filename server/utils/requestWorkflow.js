@@ -2,6 +2,7 @@ import Completed from '../model/Completed.js'
 import Donor from '../model/Donar.js'
 import Requests from '../model/Request.js'
 import ReqBlood from '../model/Recipient.js'
+import User from '../model/User.js'
 import ArchivedBloodRequest from '../model/ArchivedBloodRequest.js'
 import { getUserSocket, io } from '../config/socket.js'
 import { acceptanceDeadline } from '../config/workflow.js'
@@ -237,6 +238,15 @@ export const releaseStaleConfirmation = async (bloodRequest)=>{
 export const archiveBloodRequest = async (bloodRequest, reason)=>{
     const snapshot = typeof bloodRequest.toObject === 'function' ? bloodRequest.toObject() : bloodRequest
     const cycle = Number.isFinite(bloodRequest.cycle) ? bloodRequest.cycle : 0
+
+    // Resolved now and stored, not joined at read time: history has to keep reading the same way
+    // after either account is renamed or deleted. Only the names - nothing else from either user
+    // profile belongs in a record the recipient will look at later.
+    const [recipient, donor] = await Promise.all([
+        User.findById(bloodRequest.recipientId).select('username'),
+        bloodRequest.fulfilledBy ? User.findById(bloodRequest.fulfilledBy).select('username') : null
+    ])
+
     try{
         await ArchivedBloodRequest.updateOne(
             {bloodRequestId:bloodRequest._id, cycle, reason},
@@ -244,6 +254,8 @@ export const archiveBloodRequest = async (bloodRequest, reason)=>{
                 recipientId:bloodRequest.recipientId,
                 bloodType:bloodRequest.bloodType,
                 patientsName:bloodRequest.patientsName,
+                recipientName:recipient?.username || null,
+                donorName:donor?.username || null,
                 location:bloodRequest.location,
                 place:bloodRequest.place,
                 pinCode:bloodRequest.pinCode,
@@ -263,6 +275,26 @@ export const archiveBloodRequest = async (bloodRequest, reason)=>{
         // two callers upserted the same round at once; the loser's row is already there
         if(err?.code !== 11000) throw err
     }
+}
+
+/**
+ * Takes a finished blood request out of the live collection.
+ *
+ * A request that is over - fulfilled, expired or deleted by its owner - is history, and history
+ * lives in ArchivedBloodRequest. Leaving the document behind with a flag on it was what made a
+ * completed request a dead end: every validation path reads the one ReqBlood document per
+ * profile, so a fulfilled one still standing there is indistinguishable from an active request
+ * and answers "already fulfilled" forever. Removing it is what lets the recipient submit a fresh
+ * form immediately, and the new form is a new document with its own id.
+ *
+ * Idempotent: a second call deletes nothing and unsets an already-unset field. Callers must
+ * archive first - this does not, so that the caller decides the reason the round ended.
+ */
+export const removeBloodRequestDocument = async (bloodRequest)=>{
+    await ReqBlood.findByIdAndDelete(bloodRequest._id)
+    // otherwise User.recipientId dangles at a document that no longer exists and the client keeps
+    // treating the user as having an active requirement
+    await User.findOneAndUpdate({_id:bloodRequest.recipientId}, {$unset:{recipientId:""}})
 }
 
 export const emitToUsers = (userIds, event, payload)=>{

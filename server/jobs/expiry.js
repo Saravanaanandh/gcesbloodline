@@ -12,6 +12,7 @@ import {
     LIVE_STATUSES,
     archiveBloodRequest,
     emitToUsers,
+    removeBloodRequestDocument,
     retireRequest,
 } from '../utils/requestWorkflow.js'
 
@@ -70,6 +71,31 @@ const migrateBloodRequestArchive = async ()=>{
             await ArchivedBloodRequest.updateOne({_id:row._id}, {$set:{bloodRequestId:row._id, cycle:0}})
         }
         if(legacy.length) console.log(`migrated ${legacy.length} archived blood requests onto (bloodRequestId, cycle)`)
+
+        // Rows written before the archive kept the donor's and recipient's names. The history
+        // cards read those fields, so without this every round archived earlier would show a
+        // donation with nobody's name against it. Resolved once, then stored, exactly as a new
+        // archive row does - the names are part of the snapshot, not a live join.
+        const unnamed = await ArchivedBloodRequest
+            .find({recipientName:{$in:[null, undefined]}})
+            .select('recipientId fulfilledBy')
+        let named = 0
+        for(const row of unnamed){
+            const [recipient, donor] = await Promise.all([
+                User.findById(row.recipientId).select('username'),
+                row.fulfilledBy ? User.findById(row.fulfilledBy).select('username') : null
+            ])
+            // a row whose users are both gone has nothing to backfill, so it is left alone
+            // rather than rewritten with nulls on every boot
+            if(!recipient && !donor) continue
+            await ArchivedBloodRequest.updateOne({_id:row._id}, {$set:{
+                recipientName:recipient?.username || null,
+                donorName:donor?.username || null
+            }})
+            named++
+        }
+        if(named) console.log(`backfilled donor and recipient names on ${named} archived blood requests`)
+
         await ArchivedBloodRequest.createIndexes()
     }catch(err){
         console.log(`could not migrate the blood request archive: ${err.message}`)
@@ -226,10 +252,7 @@ export const expireBloodRequests = async ()=>{
         // existing document and takes the create path rather than reopening a dead round.
         // Deleted last, after the donor requests are retired, because retireRequest reads this
         // document to release the confirmation lock.
-        await ReqBlood.findByIdAndDelete(claimed._id)
-        // otherwise User.recipientId dangles at a document that no longer exists, and the
-        // client keeps treating the user as an active recipient
-        await User.findOneAndUpdate({_id:claimed.recipientId}, {$unset:{recipientId:""}})
+        await removeBloodRequestDocument(claimed)
 
         emitToUsers([claimed.recipientId], "bloodrequestexpired", {
             bloodRequestId:claimed._id,
@@ -244,14 +267,59 @@ export const expireBloodRequests = async ()=>{
     return {expired, cancelledDonations}
 }
 
+/**
+ * Clears fulfilled blood requests that were left in the live collection.
+ *
+ * A completed requirement is retired as its donation finalizes, so on a healthy database this
+ * finds nothing. It exists for the two cases that bypass that: documents fulfilled before the
+ * completion flow retired them at all - which is what made "Blood request already fulfilled"
+ * permanent - and a crash between finalizing the donation and removing the requirement.
+ *
+ * Deliberately not folded into expireBloodRequests: that one refuses to touch a fulfilled
+ * request, because overwriting a completed outcome with "expired" would falsify the history.
+ * This archives under the outcome that actually happened.
+ */
+export const retireFulfilledBloodRequests = async ()=>{
+    const fulfilled = await ReqBlood.find({isFulfilled:true})
+
+    let retired = 0
+    for(const bloodRequest of fulfilled){
+        // Deduped on (blood request, cycle, reason), so a round the completion flow already
+        // archived collapses into the existing row rather than doubling the history.
+        await archiveBloodRequest(bloodRequest, "fulfilled")
+
+        // Nothing should still be live against a met requirement, but a leftover would point a
+        // donor at a requirement about to disappear. Retired before the document, because
+        // releasing their locks reads it.
+        const orphans = await Requests.find({
+            recipientId:bloodRequest.recipientId,
+            status:{$in:LIVE_STATUSES}
+        }).select('_id donorId')
+        for(const orphan of orphans){
+            const gone = await retireRequest(orphan._id, LIVE_STATUSES, "expired")
+            if(gone) emitToUsers([gone.donorId], "requestexpired", {requestId:gone._id})
+        }
+
+        await removeBloodRequestDocument(bloodRequest)
+
+        emitToUsers([bloodRequest.recipientId], "bloodrequestfulfilled", {
+            bloodRequestId:bloodRequest._id
+        })
+        io.emit("bloodrequestclosed",{bloodRequestId:bloodRequest._id, reason:"fulfilled"})
+        retired++
+    }
+    return retired
+}
+
 export const runExpirySweep = async ()=>{
     if(mongoose.connection.readyState !== 1) return
     try{
         const acceptances = await expireStaleAcceptances()
         const untouched = await expireUntouchedRequests()
+        const completed = await retireFulfilledBloodRequests()
         const {expired, cancelledDonations} = await expireBloodRequests()
-        if(acceptances || untouched || expired || cancelledDonations){
-            console.log(`expiry sweep: ${acceptances} acceptances, ${untouched} untouched requests, ${expired} blood requests past their needed-by date, ${cancelledDonations} in-progress donations cancelled`)
+        if(acceptances || untouched || completed || expired || cancelledDonations){
+            console.log(`expiry sweep: ${acceptances} acceptances, ${untouched} untouched requests, ${completed} fulfilled requests moved to history, ${expired} blood requests past their needed-by date, ${cancelledDonations} in-progress donations cancelled`)
         }
     }catch(err){
         console.log(`expiry sweep failed: ${err.message}`)

@@ -75,14 +75,24 @@ export const createRecipients = async (req, res)=>{
             pinCode: Number(pinCode)
         }
 
+        // One live document per profile, so a brand new requirement is simply a create. A
+        // completed one is deleted the moment its donation finalizes, which is what makes this
+        // the ordinary path after a successful donation rather than the exception.
+        const createFreshRequest = async ()=>{
+            const recipient = await ReqBlood.create({
+                ...sanitizeRequestBody(req.body),
+                ...verifiedLocation,
+                bloodUnits:units,
+                expiresAt:neededOn,
+                recipientId:userId
+            })
+            await User.findByIdAndUpdate(userId,{recipientId:recipient._id},{new:true})
+            io.emit("newrecipient",{bloodRequestId:recipient._id, recipientId:userId})
+            return res.status(201).json(recipient)
+        }
+
         const existingRecipient = await ReqBlood.findOne({recipientId:userId})
         if(existingRecipient){
-            // A fulfilled request is the end of the line for this profile: reopening it would
-            // give one profile a second active request, which is exactly what the rule forbids.
-            if(existingRecipient.isFulfilled){
-                return res.status(409).json({message:"Your blood request has already been fulfilled. Use a separate profile to raise another active request."})
-            }
-
             // THE FORM LOCK. Once a donor is confirmed the request is frozen: editing it would
             // change what that donor agreed to donate, mid-donation. It stays frozen until the
             // donation completes or the recipient cancels it, which is what the message says to do.
@@ -99,18 +109,34 @@ export const createRecipients = async (req, res)=>{
                 return res.status(409).json({message:FORM_LOCKED_MESSAGE})
             }
 
-            // A round that is over is being replaced rather than edited: either the sweeper has
-            // flagged it, or its date has passed and the sweeper has simply not got to it yet.
+            // A round that is over is being replaced rather than edited: its donation completed,
+            // the sweeper has flagged it expired, or its date has passed and the sweeper has
+            // simply not got to it yet.
+            //
+            // A fulfilled round counts. It used to be refused outright - one profile, one
+            // request, ever - which is what produced "Blood request already fulfilled" on every
+            // later attempt. The rule it was protecting is that a profile may hold one *active*
+            // request at a time, and a completed one is not active: it is history, already
+            // archived, and replacing it here leaves exactly one live requirement as before.
+            //
+            // Normally there is nothing to replace at all, because a fulfilled document is
+            // deleted as its donation finalizes. This path is what recovers the ones that were
+            // left behind - written before that existed, or by a crash mid-completion.
             const isReplacingFinishedRound = Boolean(
-                existingRecipient.isExpired || isPastInIST(existingRecipient.reqDate)
+                existingRecipient.isFulfilled
+                || existingRecipient.isExpired
+                || isPastInIST(existingRecipient.reqDate)
             )
 
             // The outgoing round is archived before it is overwritten, so its history survives
-            // the reopen. Deduped on (blood request, cycle, reason), so if the sweeper already
-            // archived this same round as "expired" this is a no-op rather than a second row -
-            // and the round that never reached the sweeper is still recorded.
+            // the reopen. Deduped on (blood request, cycle, reason), so a round the sweeper or
+            // the completion flow already archived is a no-op here rather than a second row -
+            // and the round that never reached either is still recorded.
             if(isReplacingFinishedRound){
-                await archiveBloodRequest(existingRecipient, "expired")
+                await archiveBloodRequest(
+                    existingRecipient,
+                    existingRecipient.isFulfilled ? "fulfilled" : "expired"
+                )
             }
 
             // Re-submitting an expired or untouched request reopens it against the new date.
@@ -123,7 +149,7 @@ export const createRecipients = async (req, res)=>{
             // edit of a live request: it is what gives each round its own archive identity, so
             // it has to line up with what was actually archived above.
             const updatedRecipient = await ReqBlood.findOneAndUpdate(
-                {recipientId:userId, isFulfilled:{$ne:true}},
+                {recipientId:userId, _id:existingRecipient._id},
                 {
                     $set:{
                         ...sanitizeRequestBody(req.body),
@@ -132,15 +158,22 @@ export const createRecipients = async (req, res)=>{
                         isExpired:false,
                         expiresAt:neededOn,
                         isDonorFinded:false,
-                        confirmedRequestId:null
+                        confirmedRequestId:null,
+                        // The outcome of the round just archived above. Left set, these would
+                        // hand the new round the previous one's completion - closed on arrival,
+                        // credited to a donor who never agreed to it.
+                        isFulfilled:false,
+                        fulfilledAt:null,
+                        fulfilledBy:null
                     },
                     ...(isReplacingFinishedRound ? {$inc:{cycle:1}} : {})
                 },
                 {new:true, runValidators:true}
             )
-            if(!updatedRecipient){
-                return res.status(409).json({message:"Your blood request has already been fulfilled. Use a separate profile to raise another active request."})
-            }
+            // The document went away between the read and the write - the donation finalized in
+            // that window and took it with it. Nothing is wrong, there is simply no longer a
+            // round to replace, so this submission is the new request.
+            if(!updatedRecipient) return await createFreshRequest()
             // Ids only. This used to broadcast the whole document - patient name, attendee phone
             // number, contact email - to every connected client, authenticated or not. It has
             // always only been a cache-invalidation signal, so the ids are all it needs to carry.
@@ -162,16 +195,7 @@ export const createRecipients = async (req, res)=>{
 
             res.status(201).json(updatedRecipient)
         }else{
-            const recipient = await ReqBlood.create({
-                ...sanitizeRequestBody(req.body),
-                ...verifiedLocation,
-                bloodUnits:units,
-                expiresAt:neededOn,
-                recipientId:userId
-            })
-            await User.findByIdAndUpdate(userId,{recipientId:recipient._id},{new:true})
-            io.emit("newrecipient",{bloodRequestId:recipient._id, recipientId:userId})
-            res.status(201).json(recipient)
+            return await createFreshRequest()
         }
     }catch(err){
         if(err.name === "ValidationError"){

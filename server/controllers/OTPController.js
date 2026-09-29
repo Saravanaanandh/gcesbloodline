@@ -9,7 +9,14 @@ import ReqBlood from '../model/Recipient.js'
 import { getUserSocket, io } from '../config/socket.js'
 import { DONATION_GAP_DAYS, getNextDonationDate, toDateOnly } from '../utils/donationWindow.js'
 import { inSession, withTransaction } from '../utils/transaction.js'
-import { archiveBloodRequest, markBloodRequestFulfilled } from '../utils/requestWorkflow.js'
+import {
+    LIVE_STATUSES,
+    archiveBloodRequest,
+    emitToUsers,
+    markBloodRequestFulfilled,
+    removeBloodRequestDocument,
+    retireRequest,
+} from '../utils/requestWorkflow.js'
 
 const transporter = nodemailer.createTransport({
     service:'gmail',
@@ -124,6 +131,12 @@ export const finalizeDonation = async (donorUserId, requestId)=>{
 
         // Archived here rather than at the call site, so that finalizing a donation and
         // preserving its history are one step: any caller of this function records both.
+        //
+        // Deliberately outside the session. The archive is an upsert guarded by a unique index,
+        // so on a replica set a duplicate archive of the same round raises E11000 - which inside
+        // a transaction would abort the whole thing and undo a donation that genuinely completed.
+        // Idempotency here comes from the compare-and-set on the request status above, which is
+        // what actually admits exactly one finalizer.
         const bloodRequest = fulfilled
             || await ReqBlood.findOne({recipientId:request.recipientId}, null, inSession(session))
         if(bloodRequest) await archiveBloodRequest(bloodRequest, "fulfilled")
@@ -136,6 +149,41 @@ export const finalizeDonation = async (donorUserId, requestId)=>{
             nextDonationDate:user?.nextDonationDate || nextDonationDate,
         }
     })
+}
+
+/**
+ * Retires the requirement itself, once its donation has been finalized and archived.
+ *
+ * This is the step whose absence made a completed request a dead end. finalizeDonation flagged
+ * the ReqBlood document isFulfilled and left it in place, but every validation path - send,
+ * accept, confirm, and the recipient form itself - reads the one ReqBlood document per profile,
+ * so a fulfilled one still sitting there answered "already fulfilled" to everything, forever.
+ * The requirement is history now, and history lives in the archive, so the live document goes.
+ *
+ * The same thing the expiry sweeper does when a requirement's date passes, in the same order:
+ * orphan donor requests first, because releasing their locks reads this document, then the
+ * document. Runs after the transaction rather than inside it, and is safe to repeat - which is
+ * what covers a crash in between: createRecipients treats a fulfilled leftover as a finished
+ * round and replaces it, so the recipient is never stuck either way.
+ */
+export const closeFulfilledBloodRequest = async (bloodRequest)=>{
+    if(!bloodRequest) return
+
+    // Should be empty: cancelCompetingRequests clears prepending and accepted rows the moment a
+    // donor is confirmed, and sendRequest refuses a committed recipient. Swept anyway, because
+    // leaving one behind would point a donor at a requirement that no longer exists. Retired as
+    // "expired" for the same reason the sweeper uses it - the requirement closed under them, and
+    // it must not read as a rejection by either side.
+    const orphans = await Requests.find({
+        recipientId:bloodRequest.recipientId,
+        status:{$in:LIVE_STATUSES}
+    }).select('_id donorId')
+    for(const orphan of orphans){
+        const retired = await retireRequest(orphan._id, LIVE_STATUSES, "expired")
+        if(retired) emitToUsers([retired.donorId], "requestexpired", {requestId:retired._id})
+    }
+
+    await removeBloodRequestDocument(bloodRequest)
 }
 
 export const verifyOTP = async(req, res)=>{
@@ -161,8 +209,10 @@ export const verifyOTP = async(req, res)=>{
                         return res.status(finalized.code).json({message:finalized.message})
                     }
 
-                    // finalizeDonation has already closed and archived the requirement
+                    // finalizeDonation has already archived the requirement; this takes it out of
+                    // the live collection so the recipient can raise a fresh one straight away
                     const bloodRequest = finalized.bloodRequest
+                    await closeFulfilledBloodRequest(bloodRequest)
 
                     const receiverSocketId = getUserSocket(finalized.request.recipientId)
                     if(receiverSocketId){

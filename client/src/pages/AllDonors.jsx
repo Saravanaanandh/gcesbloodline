@@ -182,8 +182,8 @@ const AllDonors = () => {
           <Heart className="size-5 shrink-0 text-green-700 dark:text-green-400" />
           <span className="text-sm text-neutral-700 dark:text-neutral-300">
             <strong className="text-green-700 dark:text-green-300">Your blood request is fulfilled.</strong>{" "}
-            A donation was completed for it, so it is closed. If more blood is needed, raise a new
-            request from a separate profile.
+            A donation was completed for it, so it is closed and kept in your request history. If
+            more blood is needed, submit the Blood Request Form again to raise a new one.
           </span>
         </div>
       )}

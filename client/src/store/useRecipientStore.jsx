@@ -86,9 +86,11 @@ const bindRecipientList = ()=>{
                 // the expired request is archived and deleted, so authUser.recipientId is gone
                 useAuthStore.getState().getUser()
             },
-            // the donation completed, so this request is closed for good
+            // the donation completed, so this requirement is closed and moved to history. The
+            // live document is gone with it, which is why authUser is refreshed too - recipientId
+            // is unset, and the form has to stop rendering as locked without a reload.
             bloodrequestfulfilled:()=>{
-                toast.success("Your blood request is fulfilled. If more blood is needed, raise a new request from a separate profile.",{duration:10000})
+                toast.success("Your blood request is fulfilled and saved to your request history. You can raise a new request whenever you need one.",{duration:10000})
                 refresh()
                 useAuthStore.getState().getUser()
             },

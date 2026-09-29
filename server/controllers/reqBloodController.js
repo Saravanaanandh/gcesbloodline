@@ -48,10 +48,12 @@ export const sendRequest = async(req, res)=>{
         const recipientDetail = await ReqBlood.findOne({recipientId})
         if(!recipientDetail) return res.status(400).json({message:"Fill your blood request form before sending requests"})
 
-        // One profile carries one active request. Once it has been fulfilled it is finished,
-        // and more blood means a separate profile rather than reopening this one.
+        // This requirement has been met, so it takes no further donors. It is normally deleted as
+        // its donation finalizes, so reaching this means the completion is still in flight; either
+        // way the answer is a fresh request, which the recipient may now raise straight away on
+        // this same profile.
         if(recipientDetail.isFulfilled){
-            return res.status(409).json({message:"This blood request has already been fulfilled. Use a separate profile to raise another active request."})
+            return res.status(409).json({message:"This blood request has already been fulfilled. Submit the Blood Request Form again to raise a new request."})
         }
 
         // An expired blood requirement must not attract new donors.
@@ -405,7 +407,7 @@ export const confirmReq = async (req, res)=>{
 
         // a finished request takes no further donors
         if(bloodRequest.isFulfilled){
-            return res.status(409).json({message:"This blood request has already been fulfilled. Use a separate profile to raise another active request."})
+            return res.status(409).json({message:"This blood request has already been fulfilled. Submit the Blood Request Form again to raise a new request."})
         }
 
         await releaseStaleConfirmation(bloodRequest)

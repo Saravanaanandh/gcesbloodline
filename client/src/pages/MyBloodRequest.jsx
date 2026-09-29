@@ -89,6 +89,151 @@ const Card = ({ title, icon:Icon, children, className = "" }) => (
     </div>
 )
 
+// How a finished round ended. The archive stores why it was closed; this is what to call it.
+const HISTORY_OUTCOMES = {
+    fulfilled:{
+        label:"Completed",
+        icon:CheckCircle2,
+        className:"bg-green-50 text-green-700 border-green-300 dark:bg-green-950/40 dark:text-green-300 dark:border-green-800",
+    },
+    expired:{
+        label:"Expired",
+        icon:TriangleAlert,
+        className:"bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800",
+    },
+    deleted:{
+        label:"Removed",
+        icon:Info,
+        className:"bg-neutral-100 text-neutral-600 border-neutral-300 dark:bg-neutral-800 dark:text-neutral-300 dark:border-neutral-600",
+    },
+    replaced:{
+        label:"Replaced",
+        icon:Info,
+        className:"bg-neutral-100 text-neutral-600 border-neutral-300 dark:bg-neutral-800 dark:text-neutral-300 dark:border-neutral-600",
+    },
+}
+
+// Completion is a moment, not a day, so unlike the blood-needed date this one carries a time.
+const formatCompletedAt = (value) => {
+    if (!value) return null
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) return null
+    return date.toLocaleString("en-IN", {
+        day:"numeric", month:"short", year:"numeric", hour:"numeric", minute:"2-digit"
+    })
+}
+
+/**
+ * One finished round, as a card.
+ *
+ * Reads only from the archive row, never from the live request - the point of the archive is that
+ * it still reads the same after the request it came from has been deleted and replaced.
+ */
+const HistoryCard = ({ entry }) => {
+    const outcome = HISTORY_OUTCOMES[entry.reason] || HISTORY_OUTCOMES.deleted
+    const completedAt = formatCompletedAt(entry.fulfilledAt)
+
+    return (
+        <li className="rounded-xl border border-neutral-200 dark:border-neutral-700 p-4">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+                <div className="min-w-0">
+                    <p className="text-sm font-semibold text-neutral-800 dark:text-neutral-200 flex flex-wrap items-center gap-2">
+                        {entry.patientsName || "Blood request"}
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-600 text-white text-xs font-bold">
+                            <Droplets className="size-3 fill-current" /> {entry.bloodType || "--"}
+                        </span>
+                        <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                            {entry.bloodUnits ?? "--"} unit(s)
+                        </span>
+                    </p>
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
+                        Needed by {formatBloodNeededDate(entry.reqDate)}
+                        {entry.place ? ` · ${entry.place}` : ""}
+                    </p>
+                </div>
+                <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border shrink-0 ${outcome.className}`}>
+                    <outcome.icon className="size-3.5" /> {outcome.label}
+                </span>
+            </div>
+
+            <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5 text-xs">
+                {/* The donor is only known for a round that actually ended in a donation */}
+                {entry.donorName && (
+                    <p className="flex items-center gap-1.5 text-neutral-600 dark:text-neutral-300">
+                        <Heart className="size-3.5 shrink-0 text-red-500" />
+                        <span className="text-neutral-400 dark:text-neutral-500">Donor</span>
+                        <span className="font-medium truncate">{entry.donorName}</span>
+                    </p>
+                )}
+                {entry.recipientName && (
+                    <p className="flex items-center gap-1.5 text-neutral-600 dark:text-neutral-300">
+                        <User className="size-3.5 shrink-0 text-neutral-400" />
+                        <span className="text-neutral-400 dark:text-neutral-500">Recipient</span>
+                        <span className="font-medium truncate">{entry.recipientName}</span>
+                    </p>
+                )}
+                {entry.hospitalInfo && (
+                    <p className="flex items-center gap-1.5 text-neutral-600 dark:text-neutral-300">
+                        <Hospital className="size-3.5 shrink-0 text-neutral-400" />
+                        <span className="truncate">{entry.hospitalInfo}</span>
+                    </p>
+                )}
+                {completedAt && (
+                    <p className="flex items-center gap-1.5 text-neutral-600 dark:text-neutral-300">
+                        <CheckCircle2 className="size-3.5 shrink-0 text-green-600 dark:text-green-400" />
+                        <span className="text-neutral-400 dark:text-neutral-500">Completed</span>
+                        <span className="font-medium">{completedAt}</span>
+                    </p>
+                )}
+            </div>
+
+            <AlertDialog>
+                <AlertDialogTrigger asChild>
+                    <button
+                        type="button"
+                        className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-red-600 hover:text-red-500 dark:text-red-400"
+                    >
+                        <FileText className="size-3.5" /> View Details
+                    </button>
+                </AlertDialogTrigger>
+                <AlertDialogContent className="max-h-[85vh] overflow-y-auto">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2">
+                            <outcome.icon className="size-5" /> Request {outcome.label}
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                            The archived record of this blood request, exactly as it was when the round closed.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <div className="divide-y divide-neutral-100 dark:divide-neutral-800 text-left">
+                        <Row icon={User} label="Patient" value={entry.patientsName} />
+                        <Row icon={User} label="Recipient" value={entry.recipientName} />
+                        <Row icon={Heart} label="Donor" value={entry.donorName || "No donation completed"} />
+                        <Row icon={Droplets} label="Blood group" value={entry.bloodType} />
+                        <Row icon={Droplets} label="Units" value={entry.bloodUnits} />
+                        <Row icon={Hospital} label="Hospital" value={entry.hospitalInfo} />
+                        <Row
+                            icon={MapPin}
+                            label="Location"
+                            value={[entry.place, entry.location, entry.pinCode].filter(Boolean).join(", ")}
+                        />
+                        <Row icon={CalendarClock} label="Blood needed by" value={formatBloodNeededDate(entry.reqDate)} />
+                        <Row icon={Clock} label="Requested on" value={formatCompletedAt(entry.requestedAt)} />
+                        <Row icon={CheckCircle2} label="Completed on" value={completedAt} />
+                        <Row icon={Info} label="Status" value={outcome.label} />
+                        {/* The archive row's own id. Each round gets its own, which is what keeps
+                            several completed requests from the same profile separate. */}
+                        <Row icon={FileText} label="Request ID" value={entry._id} />
+                    </div>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Close</AlertDialogCancel>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        </li>
+    )
+}
+
 const MyBloodRequest = () => {
     const navigate = useNavigate()
     const {
@@ -381,14 +526,17 @@ const MyBloodRequest = () => {
                             <p className="flex-1 min-w-0 text-sm text-neutral-700 dark:text-neutral-300">
                                 {UPDATE_NOTE}
                             </p>
+                            {/* Fulfilled is no longer a reason to disable this. A completed round is
+                                history, and submitting the form again starts the next one - only an
+                                in-progress donation still freezes it. */}
                             <button
                                 onClick={() => navigate("/request")}
-                                disabled={data.isLocked || status === "fulfilled"}
+                                disabled={data.isLocked}
                                 title={
                                     data.isLocked
                                         ? data.formLockedMessage
                                         : status === "fulfilled"
-                                        ? "This request is fulfilled. Use a separate profile for another request."
+                                        ? "This request is complete. Submit the form again to raise a new one."
                                         : "Open the Blood Request Form"
                                 }
                                 className="rounded-md bg-red-600 px-4 py-2 text-white text-sm font-medium hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
@@ -399,35 +547,22 @@ const MyBloodRequest = () => {
                     </div>
                 )}
 
-                {/* Previous rounds, preserved through expiry */}
+                {/* Blood Request History. Every round this profile has finished, newest first -
+                    completed donations, expired rounds and ones the user removed. Nothing here is
+                    ever overwritten: each round is its own archive row, so a profile that has
+                    donated five times shows five records. */}
                 {history.length > 0 && (
                     <div className="mt-8">
-                        <Card title={`Request History (${history.length})`} icon={History}>
-                            <ul className="flex flex-col divide-y divide-neutral-100 dark:divide-neutral-800">
+                        <Card title={`Blood Request History (${history.length})`} icon={History}>
+                            <ul className="flex flex-col gap-3">
                                 {history.map(entry => (
-                                    <li key={entry._id} className="flex flex-wrap items-center justify-between gap-2 py-3">
-                                        <div className="min-w-0">
-                                            <p className="text-sm font-medium text-neutral-800 dark:text-neutral-200">
-                                                {entry.patientsName} · {entry.bloodType} · {entry.bloodUnits} unit(s)
-                                            </p>
-                                            <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
-                                                Needed by {formatBloodNeededDate(entry.reqDate)}
-                                                {entry.place ? ` · ${entry.place}` : ""}
-                                            </p>
-                                        </div>
-                                        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${
-                                            entry.reason === "fulfilled"
-                                                ? "bg-green-50 text-green-700 border-green-300 dark:bg-green-950/40 dark:text-green-300 dark:border-green-800"
-                                                : "bg-neutral-100 text-neutral-600 border-neutral-300 dark:bg-neutral-800 dark:text-neutral-300 dark:border-neutral-600"
-                                        }`}>
-                                            {entry.reason}
-                                        </span>
-                                    </li>
+                                    <HistoryCard key={entry._id} entry={entry} />
                                 ))}
                             </ul>
-                            <p className="mt-3 flex items-start gap-1.5 text-xs text-neutral-500 dark:text-neutral-400">
+                            <p className="mt-4 flex items-start gap-1.5 text-xs text-neutral-500 dark:text-neutral-400">
                                 <AlertCircle className="size-3.5 shrink-0 mt-0.5" />
-                                Past requests are kept for your records. They do not block you from raising a new one.
+                                Past requests are kept permanently for your records. They do not block you from
+                                raising a new one.
                             </p>
                         </Card>
                     </div>

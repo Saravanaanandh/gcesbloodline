@@ -39,6 +39,12 @@ const archivedBloodRequestSchema = new mongoose.Schema({
     },
     bloodType:String,
     patientsName:String,
+    // Names copied in at archive time rather than looked up when the history is read. An archive
+    // row is a snapshot: if either user renames themselves afterwards, the record of who donated
+    // to whom on that date must not silently change with them. recipientName is the account
+    // holder; patientsName above is who the blood was actually for, which is often somebody else.
+    recipientName:String,
+    donorName:String,
     location:String,
     place:String,
     pinCode:Number,
