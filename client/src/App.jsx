@@ -17,7 +17,8 @@ import SingleDonor from './pages/SingleDonor.jsx'
 import Loading from './components/Loading.jsx'
 import OtpPage from './pages/OtpPage.jsx'
 import Dashboard from './pages/Dashboard.jsx'
-import RequestForMe from './pages/RequestForMe.jsx' 
+import RequestForMe from './pages/RequestForMe.jsx'
+import MyBloodRequest from './pages/MyBloodRequest.jsx'
 import ForgetPassword from './pages/ForgetPassword'
 import ContactAndSupport from './pages/ContactAndSupport'
 import PrivacyPolicy from './pages/PrivacyPolicy.jsx'
@@ -51,7 +52,8 @@ function App() {
         <Route path='/profile' element={authUser ? <UpdateProfile/>:<Navigate to={'/'}/>}/> 
         <Route path='/donate' element={authUser ? <Donate/>:<Navigate to={'/'}/>}/> 
         <Route path='/request' element={authUser ? <Request/>:<Navigate to={'/'}/>}/> 
-        <Route path='/requestme' element={authUser ? <RequestForMe/>:<Navigate to={'/'}/>}/> 
+        <Route path='/requestme' element={authUser ? <RequestForMe/>:<Navigate to={'/'}/>}/>
+        <Route path='/myrequest' element={authUser ? <MyBloodRequest/>:<Navigate to={'/'}/>}/>
         <Route path='/allrequests' element={authUser ? <AllRequests/>:<Navigate to={'/'}/>}/> 
         <Route path='/allrequests/:id' element={authUser ? <SingleRequest/>:<Navigate to={'/'}/>}/> 
         <Route path='/alldonors' element={authUser ? <AllDonors/>:<Navigate to={'/'}/>}/> 

@@ -4,23 +4,116 @@ import { useEffect, useState } from "react";
 import Navbar from "../components/Navbar.jsx";
 import { motion } from "framer-motion";
 import {
-  AlertTriangle,
-  Check,
+  BadgeCheck,
+  CalendarDays,
   CheckCheck,
-  CheckCircle,
-  Clock,
-  Eye,
-  MoveRight,
-  Smartphone,
-  X,
+  Droplets,
+  Hospital,
+  Info,
+  MapPin,
+  Siren,
 } from "lucide-react";
 import profilePic from "./../assets/user.png";
 import { useAuthStore } from "../store/useAuthStore.jsx";
 import FormRequiredModal from "../components/FormRequiredModal.jsx";
+import StatusBadge from "../components/StatusBadge.jsx";
+import { recipientAction } from "../lib/requestStatus.js";
+import { formatBloodNeededDate } from "../lib/bloodNeededDate.js";
+import { formatTimeLeft } from "../lib/deadline.js";
+
+/**
+ * One row for one blood requirement, in every tab.
+ *
+ * The mirror of DonorRow in AllDonors: the four tabs each carried their own copy of this markup
+ * and decided the button text inline, so "Waiting" was yellow in one tab and the same state was a
+ * green "Confirm" in another. The pill and the chip both come from recipientAction now.
+ */
+const RequestRow = ({ item, action, onBlocked }) => {
+  const profile = item.recipientProfile || {};
+  const detail = item.recipient || {};
+  const ActionIcon = action.Icon;
+  const showEmergency = detail.isCritical && item.request?.status !== "finalState";
+
+  return (
+    <Link
+      to={`/allrequests/${item.recipient._id}`}
+      className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 rounded-3xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 shadow-sm hover:shadow-md hover:border-red-300 dark:hover:border-red-500/50 transition-all"
+    >
+      <img
+        className="size-12 sm:size-14 rounded-full object-cover ring-2 ring-neutral-100 dark:ring-neutral-800 shrink-0 self-start sm:self-auto"
+        src={profile.profile || profilePic}
+        alt={profile.username || "Recipient"}
+      />
+
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="font-bold text-neutral-900 dark:text-white truncate">
+            {profile.username || "Recipient"}
+          </h2>
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-600 text-white text-xs font-bold">
+            <Droplets className="size-3 fill-current" /> {detail.bloodType || "--"}
+          </span>
+          {showEmergency && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-600 text-white text-xs font-bold uppercase tracking-wide">
+              <Siren className="size-3" /> Emergency
+            </span>
+          )}
+        </div>
+        <p className="mt-1 text-xs sm:text-sm text-neutral-500 dark:text-neutral-400 flex flex-wrap items-center gap-x-3 gap-y-1">
+          <span>{detail.patientsage ? `${detail.patientsage} years` : "Age not set"}</span>
+          <span>{detail.gender || "Gender not set"}</span>
+          <span className="inline-flex items-center gap-1">
+            <MapPin className="size-3.5" /> {detail.location || "Location not set"}
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <CalendarDays className="size-3.5" /> {formatBloodNeededDate(detail.reqDate)}
+          </span>
+        </p>
+        {detail.hospitalInfo?.trim() && (
+          <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400 inline-flex items-center gap-1 max-w-full truncate">
+            <Hospital className="size-3.5 shrink-0" /> {detail.hospitalInfo.trim()}
+          </p>
+        )}
+        {/* an unanswered request expires on its own, so the donor can see how long is left */}
+        {item.request?.respondBy && (
+          <p className="mt-1 text-[0.7rem] font-semibold text-amber-600 dark:text-amber-400">
+            {formatTimeLeft(item.request.respondBy)}
+          </p>
+        )}
+      </div>
+
+      <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
+        <StatusBadge meta={action} size="sm" />
+        <button
+          type="button"
+          onClick={(e) => {
+            // The row itself is the link. This chip only intercepts when there is something to
+            // say first - no donor form yet - and otherwise lets the navigation through.
+            if (action.kind === "view") {
+              e.preventDefault();
+              onBlocked?.();
+            }
+          }}
+          title={action.description}
+          className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-2xl text-xs font-bold border transition-all ${
+            action.disabled
+              ? "bg-neutral-100 dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700 text-neutral-500 dark:text-neutral-400 cursor-default"
+              : `${action.classes.solid} border-transparent shadow-sm cursor-pointer`
+          }`}
+        >
+          {ActionIcon && <ActionIcon className="size-3.5" />}
+          <span className="max-sm:hidden">{action.actionLabel}</span>
+        </button>
+      </div>
+    </Link>
+  );
+};
 
 const AllRequests = () => {
-  const { allRequests, recipients,requests, getRequest,allRecipients,getRecipient,deleteRequest } = useRecipientStore();
-  const { authUser,isUserAsRecipient,isUserAsDonor } = useAuthStore();
+  const {
+    recipients, allRecipients, viewerDonorCommitted, viewerCommittedRecipientId
+  } = useRecipientStore();
+  const { isUserAsDonor } = useAuthStore();
   const [isRecipients, setIsRecipients] = useState(false);
   const [isRequests, setIsRequests] = useState(false);
   const [isAcceptedRequests, setIsAcceptedRequests] = useState(false);
@@ -38,6 +131,31 @@ const AllRequests = () => {
       ((recipient.request?.status === "accepted") | (recipient.request?.status === "pending")) 
   );
   const completedRequests = recipients.filter((recipient) => ((recipient.request?.status === "confirmed")|(recipient.request?.status === "finalState")));
+
+  /**
+   * What this donor may do about one requirement.
+   *
+   * `viewerDonorCommitted` is this donor's own lock, which starts the moment they accept somebody
+   * - the backend's atomic claim on Donor.committedRequestId is what actually refuses a second
+   * acceptance, so every other row has to say "Locked" rather than offer an Accept that 409s.
+   */
+  const actionFor = (item) => {
+    const detail = item.recipient || {};
+    const requestClosed = Boolean(
+      detail.isFulfilled || detail.isExpired ||
+      (detail.expiresAt && new Date(detail.expiresAt) <= new Date())
+    );
+    return recipientAction({
+      status: item.request?.status,
+      viewerIsDonor: isUserAsDonor,
+      donorCommitted: viewerDonorCommitted,
+      committedToThisRecipient: Boolean(
+        viewerCommittedRecipientId && detail.recipientId &&
+        String(viewerCommittedRecipientId) === String(detail.recipientId)
+      ),
+      requestClosed,
+    });
+  };
 
   return (
     <div>
@@ -115,8 +233,8 @@ const AllRequests = () => {
         >
           {!isRecipients && !isRequests && !isAcceptedRequests && !isCompletedRequest && (
             <div className="w-full flex flex-col gap-3 justify-center items-center overflow-y-hidden">
-              <motion.h1 className="font-bold text-[1.2rem] font-mono text-center">
-                📌 Menu Instructions
+              <motion.h1 className="font-bold text-[1.2rem] font-mono text-center flex items-center justify-center gap-2">
+                <Info className="size-5 text-red-600 dark:text-red-400" /> Menu Instructions
               </motion.h1>
               <div className="w-full flex flex-col gap-3">
                 <motion.div
@@ -133,19 +251,19 @@ const AllRequests = () => {
                   }}
                   transition={{ type: "spring", duration: 1.2, delay: 1 }}
                 >
-                  <h2>🩸 Request Blood</h2>
-                  <p>
-                    🔹 Click the <b>&quot;Request&quot;</b> button to submit a
-                    blood request.
-                  </p>
-                  <p>
-                    🔹 Provide accurate details, including blood type, required
-                    units, and hospital/location
-                  </p>
-                  <p>
-                    🔹 Ensure your contact information is correct for a quick
-                    response.
-                  </p>
+                  <h2 className="flex items-center gap-2 font-bold p-3 pb-1">
+                    <Droplets className="size-4 text-red-600 dark:text-red-400" />
+                    Recipients (People Who Need Blood)
+                  </h2>
+                  <ul className="list-disc pl-9 pr-3 pb-3 text-sm space-y-1">
+                    <li>These are the active blood requirements you can help with.</li>
+                    <li>Open one to see the patient details and the date the blood is needed.</li>
+                    <li>Accept a request to commit to that requirement.</li>
+                    <li>
+                      A requirement disappears from this list once its recipient has confirmed a
+                      donor.
+                    </li>
+                  </ul>
                 </motion.div>
 
                 <motion.div
@@ -162,15 +280,24 @@ const AllRequests = () => {
                   }}
                   transition={{ type: "spring", duration: 1.1, delay: 1.4 }}
                 >
-                  <h2>✅ Confirm Donation(Pending Confirmation)</h2>
-                  <p>
-                    🔹 Once a donor has been assigned, click the{" "}
-                    <b>&quot;Confirm&quot;</b> button to acknowledge receipt.
-                  </p>
-                  <p>
-                    🔹 This helps update the system and allows others to request
-                    assistance.
-                  </p>
+                  <h2 className="flex items-center gap-2 font-bold p-3 pb-1">
+                    <CheckCheck className="size-4 text-emerald-600 dark:text-emerald-400" />
+                    Accepted (Waiting and Confirming)
+                  </h2>
+                  <ul className="list-disc pl-9 pr-3 pb-3 text-sm space-y-1">
+                    <li>
+                      <b>Waiting</b> means you have accepted and the recipient is choosing between
+                      the donors who accepted.
+                    </li>
+                    <li>
+                      <b>In Progress</b> means the recipient picked you - confirm the donation to
+                      carry on.
+                    </li>
+                    <li>
+                      While you are committed you cannot accept another requirement. Cancel this one
+                      first if you need to.
+                    </li>
+                  </ul>
                 </motion.div>
 
                 <motion.div
@@ -187,13 +314,16 @@ const AllRequests = () => {
                   }}
                   transition={{ type: "spring", duration: 1, delay: 1.6 }}
                 >
-                  <h2>🎉 Accepted (Request Approved)</h2>
-                  <p>🔹 Your request has been accepted!</p>
-                  <p>
-                    🔹 You will receive donor details and further instructions.
-                  </p>
-                  <p>🔹 Please contact the donor to coordinate the donation.</p>
-                  <p>🔹 Follow safety and health guidelines before donation.</p>
+                  <h2 className="flex items-center gap-2 font-bold p-3 pb-1">
+                    <BadgeCheck className="size-4 text-emerald-600 dark:text-emerald-400" />
+                    Confirmed (Complete the Donation)
+                  </h2>
+                  <ul className="list-disc pl-9 pr-3 pb-3 text-sm space-y-1">
+                    <li>Both sides have confirmed, so the donation is going ahead.</li>
+                    <li>Generate the OTP at the donation centre to record the donation.</li>
+                    <li>Contact the recipient to agree on a time and place.</li>
+                    <li>Follow safety and health guidelines before donating.</li>
+                  </ul>
                 </motion.div>
               </div>
             </div>
@@ -206,84 +336,12 @@ const AllRequests = () => {
           {isRecipients &&
             allRecipient.length > 0 &&
             allRecipient.map((recipient) => (
-              <Link
-                className="w-full h-[15vh] shadow-sm shadow-gray-500 rounded-md px-5 hover:border-[1px] transition-all duration-100 cursor-pointer"
+              <RequestRow
                 key={recipient.recipient._id}
-                // onClick={() => getRecipient(recipient.recipientProfile.recipientId)}
-                to={`/allrequests/${recipient.recipient._id}`}
-              >
-                <div className="h-full flex max-sm:gap-10 sm:justify-between  items-center">
-                  <div className="flex items-center gap-5">
-                    <div>
-                      <img
-                        className="size-10 sm:size-15 rounded-full"
-                        src={recipient.recipientProfile.profile || profilePic}
-                        alt=""
-                      />
-                    </div>
-                    <div className="max-sm:hidden"> 
-                      <div className="flex gap-5 items-center">
-                        <h1>
-                          <strong>
-                            {" "}
-                            {recipient.recipientProfile.username.toUpperCase()}
-                          </strong>
-                        </h1>
-                        <div className="flex items-center gap-5">
-                          <p>
-                          Requested Blood: <span  className="px-2 py-1 bg-red-600 text-white rounded-2xl">{recipient.recipient?.bloodType}</span>
-                          </p> 
-                          {
-                            recipient.recipient?.isCritical === true ? ( 
-                              <span className="px-2 flex gap-2 py-1 bg-red-600 text-white animate-caret-blink rounded-md">
-                              <span className="max-sm:hidden">Emergency</span> <AlertTriangle/>
-                              </span> 
-                            ):("")
-                          } 
-                        </div> 
-                      </div>
-                      <p className="text-[0.9rem]">
-                        {" "}
-                        Age : {recipient.recipient?.patientsage} | Gender :{" "}
-                        {recipient.recipient?.gender} | location :{" "}
-                        {recipient.recipient?.location}
-                        {recipient.recipient?.hospitalInfo?.trim() && (
-                          <> | Hospital : {recipient.recipient.hospitalInfo.trim()}</>
-                        )}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="sm:flex sm:flex-col sm:items-center">
-                    <h1 className="sm:hidden">
-                      <strong>
-                        {" "}
-                        {recipient.recipientProfile?.username.toUpperCase()}
-                      </strong>
-                    </h1>
-                    <button className="flex items-center gap-1 px-3 py-2 border-[1px] transition-all duration-200 rounded-sm  bg-green-700 text-white">
-                      View <Eye className="size-4" />
-                    </button>
-                  </div>
-                  <div className="sm:hidden flex flex-col items-center gap-2">
-                    <p>
-                    <span  className="p-1 bg-red-600 text-white rounded-2xl">{recipient.recipient?.bloodType}</span>
-                    </p> 
-                    {
-                      recipient.recipient?.isCritical === true ? 
-                        recipient.request?.status !== "finalState" && (
-                        <span className="px-2 py-1 bg-red-600 text-white animate-caret-blink rounded-md">
-                          <span className="max-sm:hidden">Emergency</span> <AlertTriangle/>
-                        </span> 
-                      ):("")
-                    } 
-                    {recipient.recipient?.hospitalInfo?.trim() && (
-                      <span className="text-[0.7rem] text-gray-500 dark:text-gray-400 truncate max-w-[110px] text-center" title={recipient.recipient.hospitalInfo}>
-                        🏥 {recipient.recipient.hospitalInfo.trim()}
-                      </span>
-                    )}
-                  </div> 
-                </div>
-              </Link>
+                item={recipient}
+                action={actionFor(recipient)}
+                onBlocked={() => setShowDonorModal(true)}
+              />
           ))}
           {isRequests && !prependingRequests.length && (
             <div className="w-full h-full flex justify-center items-center">
@@ -293,95 +351,12 @@ const AllRequests = () => {
           {isRequests &&
             prependingRequests.length > 0 &&
             prependingRequests.map((recipient) => (
-              <Link
-                className="w-full h-[15vh] shadow-sm shadow-gray-500 rounded-md px-5 hover:border-[1px] transition-all duration-100"
+              <RequestRow
                 key={recipient.recipient._id}
-                // onClick={() => getRequest(request.recipientProfile.recipientId)}
-                to={`/allrequests/${recipient.recipient._id}`}
-              >
-                <div className="h-full flex max-sm:gap-2 sm:justify-between items-center">
-                  <div className="flex justify-between items-center gap-5">
-                    <div>
-                      <img
-                        className="size-10 sm:size-15 rounded-full "
-                        src={recipient.recipientProfile.profile || profilePic}
-                        alt=""
-                      />
-                    </div>
-                    <div className="max-sm:hidden">
-                      <div className="flex gap-5 items-center">
-                        <h1>
-                          <strong>
-                            {" "}
-                            {recipient.recipientProfile.username.toUpperCase()}
-                          </strong>
-                        </h1>
-                        <div className="flex items-center gap-5">
-                          <p>
-                          Requested Blood: <span  className="px-2 py-1 bg-red-600 text-white rounded-2xl">{recipient.recipient?.bloodType}</span>
-                          </p> 
-                          {
-                            recipient.recipient?.isCritical === true ? ( 
-                              <span className="px-2 py-1 bg-red-600 text-white rounded-md">
-                                Emergency
-                              </span> 
-                            ):("")
-                          } 
-                        </div> 
-                      </div>
-                      
-                      <p className="text-[0.9rem]">
-                        {" "}
-                        Age : {recipient.recipient?.patientsage} | Gender :{" "}
-                        {recipient.recipient?.gender} | location :{" "}
-                        {recipient.recipient?.location}
-                        {recipient.recipient?.hospitalInfo?.trim() && (
-                          <> | Hospital : {recipient.recipient.hospitalInfo.trim()}</>
-                        )}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="sm:flex sm:flex-col sm:items-center">
-                    <h1 className="sm:hidden  text-[0.8rem]">
-                      <strong>
-                        {" "}
-                        {recipient.recipientProfile?.username.toUpperCase()}
-                      </strong>
-                    </h1>
-                    <button
-                      className="flex items-center gap-1 p-1 max-sm:text-[0.7rem] sm:px-3 sm:py-2 border-[1px] transition-all duration-200 rounded-sm  bg-green-700 text-white"
-                      onClick={(e) => {
-                        if (!isUserAsDonor) {
-                          // non-donor trying to accept – show form popup
-                          e.preventDefault();
-                          setShowDonorModal(true);
-                        }
-                        // donors navigate to single request via Link normally
-                      }}
-                    >
-                      Accept <MoveRight className="size-4" />
-                    </button>
-                  </div>
-                  <div className="sm:hidden flex flex-col items-center gap-2">
-                    <p>
-                    <span  className="p-1 bg-red-600 text-white rounded-2xl">{recipient.recipient?.bloodType}</span>
-                    </p> 
-                    {
-                      recipient.recipient?.isCritical === true ? 
-                        recipient.request?.status !== "finalState" && (
-                        <span className="px-2 py-1 bg-red-600 text-white animate-caret-blink rounded-md">
-                          <span className="max-sm:hidden">Emergency</span> <AlertTriangle/>
-                        </span> 
-                      ):("")
-                    } 
-                    {recipient.recipient?.hospitalInfo?.trim() && (
-                      <span className="text-[0.7rem] text-gray-500 dark:text-gray-400 truncate max-w-[110px] text-center" title={recipient.recipient.hospitalInfo}>
-                        🏥 {recipient.recipient.hospitalInfo.trim()}
-                      </span>
-                    )}
-                  </div> 
-                </div>
-              </Link>
+                item={recipient}
+                action={actionFor(recipient)}
+                onBlocked={() => setShowDonorModal(true)}
+              />
           ))}
           {isAcceptedRequests && !acceptedrequests.length && (
             <div className="w-full h-full flex justify-center items-center">
@@ -391,95 +366,12 @@ const AllRequests = () => {
           {isAcceptedRequests &&
             acceptedrequests.length > 0 &&
             acceptedrequests.map((recipient) => (
-              <Link
-                className="w-full h-[15vh] shadow-sm shadow-gray-500 rounded-md px-5 hover:border-[1px] transition-all duration-100 cursor-pointer"
+              <RequestRow
                 key={recipient.recipient._id}
-                // onClick={() => getRequest(recipient.recipientProfile.recipientId)}
-                to={`/allrequests/${recipient.recipient._id}`}
-              >
-                <div className="h-full flex max-sm:gap-2 sm:justify-between items-center">
-                  <div className="flex items-center gap-5">
-                    <div>
-                      <img
-                        className="size-10 sm:size-15 rounded-full "
-                        src={recipient.recipientProfile.profile || profilePic}
-                        alt=""
-                      />
-                    </div>
-                    <div className="max-sm:hidden">
-                      <div className="flex gap-5 items-center">
-                        <h1>
-                          <strong>
-                            {" "}
-                            {recipient.recipientProfile.username.toUpperCase()}
-                          </strong>
-                        </h1>
-                        <div className="flex items-center gap-5">
-                          <p>
-                          Requested Blood: <span  className="px-2 py-1 bg-red-600 text-white rounded-2xl">{recipient.recipient?.bloodType}</span>
-                          </p> 
-                          {
-                            recipient.recipient?.isCritical === true ? ( 
-                              <span className="px-2 py-1 bg-red-600 text-white rounded-md">
-                                Emergency
-                              </span> 
-                            ):("")
-                          } 
-                        </div> 
-                      </div>
-                      <p className="text-[0.9rem]">
-                        {" "}
-                        Age : {recipient.recipient?.patientsage} | Gender :{" "}
-                        {recipient.recipient?.gender} | location :{" "}
-                        {recipient.recipient?.location}
-                        {recipient.recipient?.hospitalInfo?.trim() && (
-                          <> | Hospital : {recipient.recipient.hospitalInfo.trim()}</>
-                        )}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="sm:flex sm:flex-col sm:items-center">
-                    <h1 className="sm:hidden text-[0.8rem]">
-                      <strong>
-                        {" "}
-                        {recipient.recipientProfile.username.toUpperCase()}
-                      </strong>
-                    </h1>
-                    <button className={`flex items-center gap-1 sm:px-3 sm:py-2 p-1 rounded-sm text-white ${recipient.request?.status === "accepted" ? "bg-yellow-700 ":"bg-green-700"}`}>
-                      {
-                        recipient.request?.status === "accepted"
-                          ? "Waiting"
-                          : "Confirm"
-                      }
-                      {
-                        recipient.request?.status === "accepted" ? (
-                          <Clock />
-                        ):(
-                          <MoveRight /> 
-                        )
-                      }
-                    </button>
-                  </div>
-                  <div className="sm:hidden flex flex-col items-center gap-2">
-                    <p>
-                    <span  className="p-1 bg-red-600 text-white rounded-2xl">{recipient.recipient?.bloodType}</span>
-                    </p> 
-                    {
-                      recipient.recipient?.isCritical === true ? 
-                        recipient.request?.status !== "finalState" && (
-                        <span className="px-2 py-1 bg-red-600 text-white animate-caret-blink rounded-md">
-                          <span className="max-sm:hidden">Emergency</span> <AlertTriangle/>
-                        </span> 
-                      ):("")
-                    } 
-                    {recipient.recipient?.hospitalInfo?.trim() && (
-                      <span className="text-[0.7rem] text-gray-500 dark:text-gray-400 truncate max-w-[110px] text-center" title={recipient.recipient.hospitalInfo}>
-                        🏥 {recipient.recipient.hospitalInfo.trim()}
-                      </span>
-                    )}
-                  </div> 
-                </div>
-              </Link>
+                item={recipient}
+                action={actionFor(recipient)}
+                onBlocked={() => setShowDonorModal(true)}
+              />
             ))}
           {isCompletedRequest && !completedRequests.length && (
             <div className="w-full h-full flex justify-center items-center">
@@ -489,93 +381,12 @@ const AllRequests = () => {
           {isCompletedRequest &&
             completedRequests.length > 0 &&
             completedRequests.map((recipient) => (
-              <Link
-                className="w-full h-[15vh] shadow-sm shadow-gray-500 rounded-md px-5 hover:border-[1px] transition-all duration-100 cursor-pointer"
+              <RequestRow
                 key={recipient.recipient._id}
-                // onClick={() => getRequest(recipient.recipientProfile.recipientId)}
-                to={`/allrequests/${recipient.recipient._id}`}
-              >
-                <div className="h-full flex max-sm:gap-2 justify-between items-center">
-                  <div className="flex justify-between items-center gap-5">
-                    <div>
-                      <img
-                        className="size-10 sm:size-15 rounded-full"
-                        src={recipient.recipientProfile.profile || profilePic}
-                        alt=""
-                      />
-                    </div>
-                    <div className="max-sm:hidden">
-                      <div className="flex gap-5 items-center">
-                        <h1>
-                          <strong>
-                            {" "}
-                            {recipient.recipientProfile.username.toUpperCase()}
-                          </strong>
-                        </h1>
-                        <div className="flex items-center gap-5">
-                          <p>
-                          Requested Blood: <span  className="px-2 py-1 bg-red-600 text-white rounded-2xl">{recipient.recipient?.bloodType}</span>
-                          </p> 
-                          {
-                            recipient.recipient?.isCritical === true ? ( 
-                              <span className="px-2 py-1 flex gap-2 items-center bg-red-600 text-white animate-caret-blink rounded-md">
-                                <span className="max-sm:hidden">Emergency</span> <AlertTriangle/>
-                              </span> 
-                            ):("")
-                          } 
-                        </div> 
-                      </div>
-                      <p className="max-sm:hidden text-[0.9rem]">
-                        {" "}
-                        Age : {recipient.recipient?.patientsage} | Gender :{" "}
-                        {recipient.recipient?.gender} | location :{" "}
-                        {recipient.recipient?.location}
-                        {recipient.recipient?.hospitalInfo?.trim() && (
-                          <> | Hospital : {recipient.recipient.hospitalInfo.trim()}</>
-                        )}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="sm:flex sm:flex-col sm:items-center">
-                    <h1 className="sm:hidden text-[0.6rem]">
-                      <strong>
-                        {" "}
-                        {recipient.recipientProfile?.username.toUpperCase()}
-                      </strong>
-                    </h1>
-                    <button
-                      className={`flex items-center max-sm:text-[0.7rem] gap-1 sm:px-3 p-1 sm:py-2 rounded-sm bg-green-700  text-white`}
-                    >  
-                      {recipient.request?.status === "confirmed"
-                        ? "Generate OTP"
-                        : "Completed"}
-                      {recipient.request?.status === "confirmed" ? (
-                        <Smartphone className="size-4" />
-                      ) : (
-                        <CheckCircle />
-                      )} 
-                    </button> 
-                  </div>
-                  <div className="sm:hidden flex flex-col items-center gap-2">
-                    <p>
-                    <span  className="p-1 bg-red-600 text-white rounded-2xl">{recipient.recipient?.bloodType}</span>
-                    </p> 
-                    {
-                      recipient.recipient?.isCritical === true ? 
-                        recipient.request?.status !== "finalState" && (
-                        <span className="px-2 py-1 bg-red-600 text-white animate-caret-blink rounded-md">
-                          <span className="max-sm:hidden">Emergency</span> <AlertTriangle/>
-                        </span> 
-                      ):("")
-                    } 
-                    {recipient.recipient?.hospitalInfo?.trim() && (
-                      <span className="text-[0.7rem] text-gray-500 dark:text-gray-400 truncate max-w-[110px] text-center" title={recipient.recipient.hospitalInfo}>
-                        🏥 {recipient.recipient.hospitalInfo.trim()}
-                      </span>
-                    )}
-                  </div> 
-                </div>
-              </Link>
+                item={recipient}
+                action={actionFor(recipient)}
+                onBlocked={() => setShowDonorModal(true)}
+              />
             ))}
         </motion.div>
       </div>

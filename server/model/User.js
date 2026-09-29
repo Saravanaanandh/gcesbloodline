@@ -29,10 +29,16 @@ const userSchema = new mongoose.Schema({
         type:String,
         required:true 
     },
+    place:{
+        type:String,
+        default:"",
+        trim:true,
+        maxlength:100
+    },
     pinCode:{
         type:Number,
         length:6,
-        required:true 
+        required:true
     },
     mobile:{
         type:Number,
@@ -84,8 +90,16 @@ const userSchema = new mongoose.Schema({
     nextDonationDate:{
         type:String 
     },
+    // A User document is only created once the signup OTP has been verified, so this is true for
+    // every account the current flow produces. Defaulted to true rather than false on purpose:
+    // accounts that predate email verification are already trusted, and defaulting to false
+    // would retroactively lock all of them out.
+    emailVerified:{
+        type:Boolean,
+        default:true
+    },
     recipientId:{
-        type:mongoose.Types.ObjectId  
+        type:mongoose.Types.ObjectId
     },
     donorId:{
         type:mongoose.Types.ObjectId  
@@ -93,7 +107,19 @@ const userSchema = new mongoose.Schema({
     token:String
 },{timestamps:true})
 
-userSchema.pre('save',async function(next){ 
+userSchema.pre('save',async function(next){
+    // Only hash when the password actually changed. This hook used to run on every save() - so
+    // any save that touched an unrelated field re-hashed the stored hash and locked the account
+    // out of its own password. Password resets still work: assigning a new value marks the path
+    // modified, which is exactly the condition below.
+    if(!this.isModified('password')) return next()
+
+    // The signup verification flow bcrypt-hashes the password when the form is submitted and
+    // holds only that hash while the user verifies their email, so by the time the User document
+    // is created the value is already a hash and must not be hashed a second time. Set on the
+    // document being saved, never taken from request data.
+    if(this.$locals.passwordAlreadyHashed) return next()
+
     const salt = await bcrypt.genSalt(10)
     this.password = await bcrypt.hash(this.password, salt)
     next()

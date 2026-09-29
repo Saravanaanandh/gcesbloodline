@@ -4,21 +4,103 @@ import { useEffect, useState } from "react";
 import Navbar from "../components/Navbar.jsx";
 import profilePic from "./../assets/user.png";
 import {
-  CheckCheck,
-  CheckCircleIcon,
-  Eye, 
-  SendHorizontalIcon,
-  TabletSmartphoneIcon,
-  Trash2,
+  BadgeCheck,
+  Droplets,
+  Heart,
+  Info,
+  MapPin,
+  SendHorizontal,
   TriangleAlert,
+  UserCheck,
 } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore.jsx";
-import { motion } from "framer-motion"; 
+import { motion } from "framer-motion";
 import FormRequiredModal from "../components/FormRequiredModal.jsx";
+import StatusBadge from "../components/StatusBadge.jsx";
+import { formatTimeLeft } from "../lib/deadline.js";
+import { donorAction } from "../lib/requestStatus.js";
+
+/**
+ * One row for one donor, in every tab.
+ *
+ * The four tabs used to each carry their own copy of this markup and their own idea of what to
+ * put in the button, so the same state was a green "confirm" in one tab and a yellow "Pending" in
+ * another. The pill and the chip both come from donorAction now, so a row cannot describe itself
+ * two different ways.
+ */
+const DonorRow = ({ donor, action, onBlocked }) => {
+  const detail = donor.donorDetail || {};
+  const ActionIcon = action.Icon;
+
+  return (
+    <Link
+      to={`/alldonors/${donor.donor._id}`}
+      className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 rounded-3xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 shadow-sm hover:shadow-md hover:border-red-300 dark:hover:border-red-500/50 transition-all"
+    >
+      <img
+        className="size-12 sm:size-14 rounded-full object-cover ring-2 ring-neutral-100 dark:ring-neutral-800 shrink-0 self-start sm:self-auto"
+        src={detail.profile || profilePic}
+        alt={detail.username || "Donor"}
+      />
+
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="font-bold text-neutral-900 dark:text-white truncate">
+            {detail.username || "Donor"}
+          </h2>
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-600 text-white text-xs font-bold">
+            <Droplets className="size-3 fill-current" /> {detail.bloodType || "--"}
+          </span>
+        </div>
+        <p className="mt-1 text-xs sm:text-sm text-neutral-500 dark:text-neutral-400 flex flex-wrap items-center gap-x-3 gap-y-1">
+          <span>{detail.age ? `${detail.age} years` : "Age not set"}</span>
+          <span>{detail.gender || "Gender not set"}</span>
+          <span className="inline-flex items-center gap-1">
+            <MapPin className="size-3.5" /> {detail.location || "Location not set"}
+          </span>
+        </p>
+        {/* the backend expires an acceptance that is never confirmed, so the recipient can see
+            how long is left before choosing someone else */}
+        {donor.requestDetail?.respondBy && (
+          <p className="mt-1 text-[0.7rem] font-semibold text-amber-600 dark:text-amber-400">
+            {formatTimeLeft(donor.requestDetail.respondBy)}
+          </p>
+        )}
+      </div>
+
+      <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
+        <StatusBadge meta={action} size="sm" />
+        <button
+          type="button"
+          onClick={(e) => {
+            // The row itself is the link. This chip only intercepts when there is something to
+            // say first - no recipient form yet - and otherwise lets the navigation through.
+            if (action.kind === "view") {
+              e.preventDefault();
+              onBlocked?.();
+            }
+          }}
+          title={action.description}
+          className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-2xl text-xs font-bold border transition-all ${
+            action.disabled
+              ? "bg-neutral-100 dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700 text-neutral-500 dark:text-neutral-400 cursor-default"
+              : `${action.classes.solid} border-transparent shadow-sm cursor-pointer`
+          }`}
+        >
+          {ActionIcon && <ActionIcon className="size-3.5" />}
+          <span className="max-sm:hidden">{action.actionLabel}</span>
+        </button>
+      </div>
+    </Link>
+  );
+};
 
 const AllDonors = () => {
-  const { authUser,isUserAsRecipient,isUserAsDonor } = useAuthStore();
-  const { allDonors, donors, getDonor } = useDonorStore(); 
+  const { isUserAsRecipient } = useAuthStore();
+  const {
+    allDonors, donors, bloodRequestExpired, bloodRequestClosedReason,
+    viewerCommitted, viewerCommittedDonorId
+  } = useDonorStore();
 
   const [isAvailable, setIsAvailable] = useState(false);
   const [isPending, setIsPending] = useState(false);
@@ -58,9 +140,29 @@ const AllDonors = () => {
     (donor) =>
       ((donor.requestDetail?.status === "accepted") | (donor.requestDetail?.status === "pending"))
   )
-   
+
   const completedRequests = donors.filter((donor) => ((donor.requestDetail?.status === "confirmed")|(donor.requestDetail?.status === "finalState")))
- 
+
+  /**
+   * What this recipient may do about one donor.
+   *
+   * This used to be decided per tab from `donor.donor.committedRequestId` and a locally derived
+   * `hasConfirmedDonor`. The first is now returned only to the donor themselves - so the check
+   * silently never fired and every committed donor looked available - and the second was a third
+   * opinion about a lock the server already reports. Both are replaced by `isCommitted` and the
+   * viewer's own commitment, which is what the API enforces.
+   */
+  const actionFor = (donor) => donorAction({
+    status: donor.requestDetail?.status,
+    donorIsCommitted: Boolean(donor.donor?.isCommitted),
+    viewerIsRecipient: isUserAsRecipient,
+    viewerCommitted,
+    viewerCommittedDonorId,
+    donorId: donor.donor?.donorId,
+    requestClosed: bloodRequestExpired,
+    closedReason: bloodRequestClosedReason,
+  })
+
   return (
     <div>
       <FormRequiredModal
@@ -72,6 +174,34 @@ const AllDonors = () => {
       <h1 className="text-center text-red-600 text-[1.2rem] underline">
         <strong>All Donors</strong>
       </h1>
+      {/* This request is closed - the donation completed, or the blood-needed date passed - so
+          the server refuses any action on it. The directory stays browsable; only the actions
+          are dead. A fulfilled request gets its own copy: it is a success, not a warning. */}
+      {bloodRequestExpired && bloodRequestClosedReason === "fulfilled" && (
+        <div className="mx-5 mt-3 rounded-md border-[1px] border-green-600 bg-green-50 dark:bg-green-950/40 p-3 flex flex-wrap items-center gap-3">
+          <Heart className="size-5 shrink-0 text-green-700 dark:text-green-400" />
+          <span className="text-sm text-neutral-700 dark:text-neutral-300">
+            <strong className="text-green-700 dark:text-green-300">Your blood request is fulfilled.</strong>{" "}
+            A donation was completed for it, so it is closed. If more blood is needed, raise a new
+            request from a separate profile.
+          </span>
+        </div>
+      )}
+      {bloodRequestExpired && bloodRequestClosedReason !== "fulfilled" && (
+        <div className="mx-5 mt-3 rounded-md border-[1px] border-amber-500 bg-amber-50 dark:bg-amber-950/40 p-3 flex flex-wrap items-center gap-3">
+          <TriangleAlert className="size-5 shrink-0 text-amber-600 dark:text-amber-400" />
+          <span className="text-sm text-neutral-700 dark:text-neutral-300">
+            <strong className="text-amber-700 dark:text-amber-300">Your blood request has expired.</strong>{" "}
+            The date you needed the blood has passed. Submit a new request with a new date to contact donors again.
+          </span>
+          <Link
+            to="/request"
+            className="ml-auto px-3 py-1.5 rounded-sm bg-red-600 text-white text-sm hover:bg-red-500"
+          >
+            Raise a new request
+          </Link>
+        </div>
+      )}
       <div className="min-h-svh flex max-sm:flex-col border-[1px] rounded-lg shadow-sm shadow-gray-400 mx-5 my-1 overflow-y-hidden">
         <div className="flex flex-col sm:h-[75vh] sm:w-[15vw] w-full">
           <div className="flex sm:flex-col">
@@ -137,8 +267,8 @@ const AllDonors = () => {
         >
           {!isAvailable && !isPending && !isAccepted && !isCompleted && (
             <div className="w-full flex flex-col gap-3 justify-center items-center overflow-y-hidden">
-              <motion.h1 className="font-bold text-[1.2rem] font-mono text-center">
-                📌 Menu Instructions
+              <motion.h1 className="font-bold text-[1.2rem] font-mono text-center flex items-center justify-center gap-2">
+                <Info className="size-5 text-red-600 dark:text-red-400" /> Menu Instructions
               </motion.h1>
               <div className="w-full flex flex-col gap-3">
                 <motion.div
@@ -155,21 +285,16 @@ const AllDonors = () => {
                   }}
                   transition={{ type: "spring", duration: 1.2, delay: 1 }}
                 >
-                  <h2>✅ Available (Donors or Blood Stock Available)</h2>
-                  <p>
-                    🔹 Donors/Blood units are available in your selected
-                    location.
-                  </p>
-                  <p>
-                    🔹 Click on a donors profile to view details and contact
-                    them.
-                  </p>
-                  <p>
-                    🔹 You can directly send a request to an available donor.
-                  </p>
-                  <p>
-                    🔹 If you find a match, proceed with the donation process.
-                  </p>
+                  <h2 className="flex items-center gap-2 font-bold p-3 pb-1">
+                    <UserCheck className="size-4 text-emerald-600 dark:text-emerald-400" />
+                    Available (Donors Ready to Donate)
+                  </h2>
+                  <ul className="list-disc pl-9 pr-3 pb-3 text-sm space-y-1">
+                    <li>Donors are available in your selected location.</li>
+                    <li>Open a donor's profile to see their details.</li>
+                    <li>You can send a request directly to an available donor.</li>
+                    <li>A donor marked Unavailable is already committed to somebody else.</li>
+                  </ul>
                 </motion.div>
 
                 <motion.div
@@ -186,17 +311,16 @@ const AllDonors = () => {
                   }}
                   transition={{ type: "spring", duration: 1.1, delay: 1.4 }}
                 >
-                  <h2>📨 Request Sent (Pending Confirmation)</h2>
-                  <p>
-                    🔹 Your blood donation request has been successfully sent.
-                  </p>
-                  <p>
-                    🔹 Please wait for the donor to respond to your request.
-                  </p>
-                  <p>🔹 You can check the request status in your dashboard.</p>
-                  <p>
-                    🔹 If no response within [X] hours, consider another donor.
-                  </p>
+                  <h2 className="flex items-center gap-2 font-bold p-3 pb-1">
+                    <SendHorizontal className="size-4 text-amber-600 dark:text-amber-400" />
+                    Request Sent (Waiting for the Donor)
+                  </h2>
+                  <ul className="list-disc pl-9 pr-3 pb-3 text-sm space-y-1">
+                    <li>Your request has been sent to the donor.</li>
+                    <li>The donor has 24 hours to accept or reject it.</li>
+                    <li>Each card shows how long is left to respond.</li>
+                    <li>You can withdraw a request and try another donor at any time.</li>
+                  </ul>
                 </motion.div>
 
                 <motion.div
@@ -213,13 +337,19 @@ const AllDonors = () => {
                   }}
                   transition={{ type: "spring", duration: 1, delay: 1.6 }}
                 >
-                  <h2>🎉 Accepted (Request Approved)</h2>
-                  <p>🔹 Your request has been accepted!</p>
-                  <p>
-                    🔹 You will receive donor details and further instructions.
-                  </p>
-                  <p>🔹 Please contact the donor to coordinate the donation.</p>
-                  <p>🔹 Follow safety and health guidelines before donation.</p>
+                  <h2 className="flex items-center gap-2 font-bold p-3 pb-1">
+                    <BadgeCheck className="size-4 text-emerald-600 dark:text-emerald-400" />
+                    Accepted (Choose One Donor)
+                  </h2>
+                  <ul className="list-disc pl-9 pr-3 pb-3 text-sm space-y-1">
+                    <li>These donors have agreed to donate for your requirement.</li>
+                    <li>Confirm one of them to start the donation workflow.</li>
+                    <li>
+                      Confirming one closes your request to everybody else - the others are told the
+                      requirement is taken, not that you rejected them.
+                    </li>
+                    <li>Follow safety and health guidelines before the donation.</li>
+                  </ul>
                 </motion.div>
               </div>
             </div>
@@ -405,74 +535,13 @@ const AllDonors = () => {
             </div>
           )} 
           {isAvailable && filteredDonors.length > 0 && filteredDonors.map((donor) => (
-            <Link
-              className="w-full h-[15vh] shadow-sm shadow-gray-500 rounded-md px-5 hover:border-[1px] transition-all duration-100 cursor-pointer"
+            <DonorRow
               key={donor.donor._id}
-              // onClick={() => {
-              //   getDonor(donor.donor.donorId);
-              // }}
-              to={`/alldonors/${donor.donor._id}`}
-            >
-              <div className="h-full flex max-sm:gap-2 sm:justify-between items-center">
-                <div className="flex items-center gap-5">
-                  <div>
-                    <img
-                      className=" size-10 sm:size-15 rounded-full "
-                      src={donor.donorDetail.profile || profilePic}
-                      alt=""
-                    />
-                  </div>
-                  <div className="max-sm:hidden">
-                    <h1 className="flex gap-3 items-center">
-                      <strong>
-                        {" "}
-                        {donor.donorDetail.username.toUpperCase()}
-                      </strong>
-                      <div className="px-2 py-1 bg-red-600 text-white rounded-2xl">
-                        {donor.donorDetail.bloodType}
-                      </div>
-                    </h1>
-                    <p className="text-[0.9rem]">
-                      {" "}
-                      Age : {donor.donorDetail.age} | Gender :{" "}
-                      {donor.donorDetail.gender} | location :{" "}
-                      {donor.donorDetail.location}{" "}
-                    </p>
-                  </div>
-                </div>
-                <div className="sm:flex sm:flex-col sm:items-center">
-                  <h1 className="sm:hidden text-[0.8rem] text-center flex gap-3 mb-2 items-center">
-                    <strong>
-                      {donor.donorDetail.username.toUpperCase()}
-                    </strong>
-                    <div className="px-1 py-0.5 bg-red-600 text-white rounded-2xl">
-                      {donor.donorDetail.bloodType}
-                    </div>
-                  </h1>
-                  {
-                    isUserAsRecipient ? (
-                      // Recipient: clicking the Link navigates to SingleDonor where they can send a request
-                      <button className="text-[0.8rem] flex items-center gap-1 sm:px-3 sm:py-2 p-1 border-[1px] transition-all duration-200 rounded-sm  bg-green-700 text-white">
-                        Send Request <SendHorizontalIcon className="size-4" />
-                      </button>
-                    ):(
-                      // Non-recipient: intercept and show form-required popup
-                      <button
-                        className="text-[0.8rem] flex items-center gap-1 sm:px-3 sm:py-2 p-1 border-[1px] transition-all duration-200 rounded-sm bg-green-700 text-white"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          setShowRecipientModal(true);
-                        }}
-                      >
-                        View <Eye className="size-4" />
-                      </button>
-                    )
-                  }
-                  
-                </div>
-              </div>
-            </Link>
-          ))}  
+              donor={donor}
+              action={actionFor(donor)}
+              onBlocked={() => setShowRecipientModal(true)}
+            />
+          ))}
           {isPending && !prependingRequests.length && (
             <div className="w-full h-full flex justify-center items-center">
               <span>No Pending Requests !</span>
@@ -480,58 +549,13 @@ const AllDonors = () => {
           )}
           {isPending &&
             prependingRequests.length > 0 &&
-            prependingRequests.map((donor) => ( 
-                <Link 
-                  className="w-full h-[15vh] shadow-sm shadow-gray-500 rounded-md px-5 hover:border-[1px] transition-all duration-100 cursor-pointer"
-                  key={donor.donor._id} 
-                  to={`/alldonors/${donor.donor._id}`}
-                >
-                  <div className="h-full flex max-sm:gap-2 sm:justify-between items-center">
-                    <div className="flex items-center gap-5">
-                      <div>
-                        <img
-                          className="size-10 sm:size-15 rounded-full "
-                          src={donor.donorDetail.profile || profilePic}
-                          alt=""
-                        />
-                      </div>
-                      <div className="max-sm:hidden">
-                        <h1 className="flex gap-3 items-center">
-                          <strong>
-                            {" "}
-                            {donor.donorDetail.username.toUpperCase()}
-                          </strong>
-                          <div className="px-2 py-1 bg-red-600 text-white rounded-2xl">
-                            {donor.donorDetail.bloodType}
-                          </div>
-                        </h1>
-                        <p className="text-[0.9rem]">
-                          {" "}
-                          Age : {donor.donorDetail.age} | Gender :{" "}
-                          {donor.donorDetail.gender} | location :{" "}
-                          {donor.donorDetail.location}{" "}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="sm:flex sm:flex-col sm:items-center">
-                      <h1 className="sm:hidden text-[0.8rem]  text-center flex gap-3 mb-2 items-center">
-                        <strong>
-                          {donor.donorDetail.username.toUpperCase()}
-                        </strong>
-                        <div className="px-1 py-0.5 bg-red-600 text-white rounded-2xl">
-                          {donor.donorDetail.bloodType}
-                        </div>
-                      </h1>
-                      <div>
-                        <button
-                          className={`flex items-center gap-1 p-1 sm:px-3 sm:py-2 rounded-sm bg-yellow-500 text-black`}
-                        > 
-                          Pending <TriangleAlert className="size-4" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </Link> 
+            prependingRequests.map((donor) => (
+              <DonorRow
+                key={donor.donor._id}
+                donor={donor}
+                action={actionFor(donor)}
+                onBlocked={() => setShowRecipientModal(true)}
+              />
           ))}
           {isAccepted && !acceptedDonors.length && (
             <div className="w-full h-full flex justify-center items-center">
@@ -541,64 +565,12 @@ const AllDonors = () => {
           {isAccepted &&
             acceptedDonors.length > 0 &&
             acceptedDonors.map((donor) => (
-              <Link
-                className="w-full h-[15vh] shadow-sm shadow-gray-500 rounded-md px-5 hover:border-[1px] transition-all duration-100 cursor-pointer"
+              <DonorRow
                 key={donor.donor._id}
-                // onClick={() => getDonor(donor.donor.donorId)}
-                to={`/alldonors/${donor.donor._id}`}
-              >
-                <div className="h-full flex max-sm:gap-1 sm:justify-between items-center">
-                  <div className="flex items-center gap-5">
-                    <div>
-                      <img
-                        className="size-10 sm:size-15 rounded-full "
-                        src={donor.donorDetail.profile || profilePic}
-                        alt=""
-                      />
-                    </div>
-                    <div className="max-sm:hidden">
-                      <h1 className="flex gap-3 items-center">
-                        <strong>
-                          {" "}
-                          {donor.donorDetail.username.toUpperCase()}
-                        </strong>
-                        <div className="px-2 py-1 bg-red-600 text-white rounded-2xl">
-                          {donor.donorDetail.bloodType}
-                        </div>
-                      </h1>
-                      <p className="text-[0.9rem]">
-                        {" "}
-                        Age : {donor.donorDetail.age} | Gender :{" "}
-                        {donor.donorDetail.gender} | location :{" "}
-                        {donor.donorDetail.location}{" "}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="sm:flex sm:flex-col sm:items-center">
-                    <h1 className="sm:hidden text-[0.8rem]  text-center flex gap-3 mb-2 items-center">
-                      <strong>
-                        {donor.donorDetail.username.toUpperCase()}
-                      </strong>
-                      <div className="px-1 py-0.5 bg-red-600 text-white rounded-2xl">
-                        {donor.donorDetail.bloodType}
-                      </div>
-                    </h1>
-
-                    <button className={`flex items-center gap-1 p-1 sm:px-3 sm:py-2 rounded-sm ${ donor.requestDetail?.status === "accepted"
-                        ? "bg-green-700 text-white"
-                        : "bg-yellow-500 text-black"}`}>
-                        {donor.requestDetail?.status === "accepted"
-                          ? "confirm"
-                          : "Pending"}
-                      {donor.requestDetail?.status === "pending" ? (
-                        <TriangleAlert />
-                      ) : (
-                        <SendHorizontalIcon className="size-4" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </Link>
+                donor={donor}
+                action={actionFor(donor)}
+                onBlocked={() => setShowRecipientModal(true)}
+              />
           ))}
           {isCompleted && !completedRequests.length && (
             <div className="w-full h-full flex justify-center items-center">
@@ -608,62 +580,12 @@ const AllDonors = () => {
           {isCompleted &&
             completedRequests.length > 0 &&
             completedRequests.map((donor) => (
-              <Link
-                className="w-full h-[15vh] shadow-sm shadow-gray-500 rounded-md px-5 hover:border-[1px] transition-all duration-100 cursor-pointer"
+              <DonorRow
                 key={donor.donor._id}
-                // onClick={() => getDonor(donor.donor.donorId)}
-                to={`/alldonors/${donor.donor._id}`}
-              >
-                <div className="h-full flex max-sm:gap-1 sm:justify-between items-center">
-                  <div className="flex items-center gap-5">
-                    <div>
-                      <img
-                        className="size-10 sm:size-15 rounded-full "
-                        src={donor.donorDetail.profile || profilePic}
-                        alt=""
-                      />
-                    </div>
-                    <div className="max-sm:hidden">
-                      <h1 className="flex gap-3 items-center">
-                        <strong>
-                          {" "}
-                          {donor.donorDetail.username.toUpperCase()}
-                        </strong>
-                        <div className="px-2 py-1 bg-red-600 text-white rounded-2xl">
-                          {donor.donorDetail.bloodType}
-                        </div>
-                      </h1>
-                      <p className="text-[0.9rem]">
-                        {" "}
-                        Age : {donor.donorDetail.age} | Gender :{" "}
-                        {donor.donorDetail.gender} | location :{" "}
-                        {donor.donorDetail.location}{" "}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="sm:flex sm:flex-col sm:items-center">
-                    <h1 className="sm:hidden text-[0.8rem] text-center flex gap-3 mb-2 items-center">
-                      <strong>
-                        {donor.donorDetail.username.toUpperCase()}
-                      </strong>
-                      <div className="px-1 py-0.5 bg-red-600 text-white rounded-2xl">
-                        {donor.donorDetail.bloodType}
-                      </div>
-                    </h1>
-
-                    <button className="flex items-center gap-1 p-1 sm:px-3 sm:py-2 rounded-sm bg-green-700 text-white">
-                      {donor.requestDetail?.status === "confirmed"
-                        ? "VerifyOTP"
-                        : "Completed"}
-                      {donor.requestDetail?.status === "confirmed" ? (
-                        <TabletSmartphoneIcon className="size-4" />
-                      ) : (
-                        <CheckCircleIcon />
-                      )} 
-                    </button>
-                  </div>
-                </div>
-              </Link>
+                donor={donor}
+                action={actionFor(donor)}
+                onBlocked={() => setShowRecipientModal(true)}
+              />
           ))}
         </motion.div>
       </div>
